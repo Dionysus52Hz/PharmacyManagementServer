@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { env } from '~/config/environment';
 import { StatusCodes } from 'http-status-codes';
+import connection from './config/database';
 
 const START_SERVER = () => {
     const app = express();
@@ -17,8 +18,12 @@ const START_SERVER = () => {
         });
     });
 
-    app.listen(env.APP_PORT, env.APP_HOST, () => {
-        console.log(`Pharamacy Server is running at http://${env.APP_HOST}:${env.APP_PORT}/`);
+    app.listen(process.env.APP_PORT, process.env.APP_HOST, () => {
+        console.log(`Pharamacy Server is running at http://${process.env.APP_HOST}:${process.env.APP_PORT}/`);
+        connection.connect((err) => {
+            if (err) throw err;
+            console.log('Database connected');
+        });
     });
 };
 
