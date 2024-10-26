@@ -19,10 +19,10 @@ const START_SERVER = () => {
 
    app.listen(env.APP_PORT, env.APP_HOST, () => {
       console.log(
-         `Server is running at http://${env.APP_HOST}:${env.APP_PORT}/`
+         `Pharamacy Server is running at http://${env.APP_HOST}:${env.APP_PORT}/`
       );
    });
-};
+}
 
 try {
    START_SERVER();
