@@ -249,6 +249,23 @@ const deleteUser = asyncHandler(async (req, res) => {
 
     return res.status(200).json({ success: true, message: `Xóa thành công người dùng ${username}` });
 });
+
+const searchUser = asyncHandler(async (req, res) => {
+    const { username } = req.query; // Search term from the query parameter
+    if (!username) {
+        return res.status(400).json({ success: false, message: 'Vui lòng cung cấp tên người dùng để tìm kiếm' });
+    }
+    const [user] = await connection
+        .promise()
+        .query('SELECT username, fullname, address, phoneNumber, role FROM user WHERE username LIKE ?', [
+            `%${username}%`,
+        ]);
+    if (user.length === 0) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng nào' });
+    }
+    return res.status(200).json({ success: true, user });
+});
+
 export default {
     register,
     login,
@@ -256,4 +273,5 @@ export default {
     createUser,
     updateUser,
     deleteUser,
+    searchUser,
 };
