@@ -26,6 +26,7 @@ const START_SERVER = () => {
     });
 
     route(app);
+
     app.use('/', (req, res) => {
         res.status(StatusCodes.OK).json({
             status: 'Success',

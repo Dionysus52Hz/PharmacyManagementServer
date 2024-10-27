@@ -30,7 +30,7 @@ const register = async (req, res, next) => {
         // Kiểm tra người dùng đã tồn tại
         const [existingUser] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
         if (existingUser.length > 0) {
-            return res.status(400).json({ message: 'Username đã tồn tại.' });
+            return res.status(400).json({ message: 'Username đã tồn tại. Hãy đăng kí username khác' });
         }
 
         // Mã hóa mật khẩu
@@ -60,6 +60,57 @@ const register = async (req, res, next) => {
     }
 };
 
+const login = asyncHandler(async (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({
+            success: false,
+            message: 'Người dùng cần nhập username và password',
+        });
+    }
+
+    // Check if the user exists
+    const [user] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
+
+    if (user.length === 0) {
+        return res.status(404).json({ success: false, message: 'Tài khoản không tồn tại' });
+    }
+
+    // Validate password
+    const isMatch = await bcrypt.compare(password, user[0].password);
+    if (!isMatch) {
+        return res.status(401).json({ success: false, message: 'Mật khẩu không đúng' });
+    }
+
+    // Generate tokens
+    const accessToken = generateAccessToken({ username: user[0].username });
+    const refreshToken = generateRefreshToken({ username: user[0].username });
+
+    const userInfo = {
+        username: user[0].username,
+        fullname: user[0].fullname,
+        address: user[0].address,
+        phoneNumber: user[0].phoneNumber,
+    };
+
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000 * 7, // 7 day expires refreshToken
+    });
+
+    res.status(200).json({
+        success: true,
+        message: 'Đăng nhập thành công',
+        user: userInfo,
+        accessToken,
+        refreshToken,
+    });
+});
+
 export default {
     register,
+    login,
 };
