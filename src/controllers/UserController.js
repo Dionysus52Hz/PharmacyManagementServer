@@ -6,7 +6,7 @@ import bcrypt from 'bcrypt';
 import connection from '../config/database.js';
 import { generateAccessToken, generateRefreshToken } from '../middlewares/jwtMiddleware.js';
 
-const register = async (req, res, next) => {
+const register = async (req, res) => {
     const { username, password, fullname, address, phoneNumber } = req.body;
 
     try {
@@ -106,11 +106,38 @@ const login = asyncHandler(async (req, res) => {
         message: 'Đăng nhập thành công',
         user: userInfo,
         accessToken,
-        refreshToken,
+    });
+});
+
+const logout = asyncHandler(async (req, res) => {
+    const cookie = req.cookies;
+
+    // Check if the refreshToken exists in cookies
+    if (!cookie || !cookie.refreshToken) {
+        return res.status(400).json({ success: false, message: 'Not found refresh token in cookies' });
+    }
+
+    // Delete refreshToken from the database
+    // const [result] = await connection
+    //     .promise()
+    //     .query('UPDATE user SET refreshToken = NULL WHERE refreshToken = ?', [cookie.refreshToken]);
+
+    // if (result.affectedRows === 0) {
+    //     return res.status(400).json({ success: false, message: 'Refresh token not found in the database' });
+    // }
+    res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+    });
+    return res.status(200).json({
+        success: true,
+        message: 'Đăng xuất thành công',
     });
 });
 
 export default {
     register,
     login,
+    logout,
 };
