@@ -180,9 +180,38 @@ const createUser = asyncHandler(async (req, res) => {
 
     res.status(201).json({ success: true, message: 'Tạo người dùng thành công', newUser });
 });
+
+const deleteUser = asyncHandler(async (req, res) => {
+    const { username } = req.params; // Assuming the username to delete is passed as a URL parameter
+    const currentRoleUser = req.user.role; // The role of the requesting user, e.g., from JWT
+
+    // Check if the requesting user has permission to delete
+    if (currentRoleUser !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Chỉ có admin mới được phép xóa người dùng' });
+    }
+
+    // Check if the user exists
+    const [user] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
+    if (user.length === 0) {
+        return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+    }
+
+    const userToDeleteRole = user[0].role;
+    // Prevent deletion of users with the same role
+    if (userToDeleteRole === currentRoleUser) {
+        return res.status(401).json({ success: false, message: 'Không được xoá ngưười có role cùng cấp' });
+    }
+
+    // Proceed with deletion
+    await connection.promise().query('DELETE FROM user WHERE username = ?', [username]);
+    console.log(`Xóa thành công người dùng ${username}`);
+
+    return res.status(200).json({ success: true, message: `Xóa thành công người dùng ${username}` });
+});
 export default {
     register,
     login,
     logout,
     createUser,
+    deleteUser,
 };
