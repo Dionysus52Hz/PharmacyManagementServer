@@ -7,7 +7,7 @@ import connection from '../config/database.js';
 import { generateAccessToken, generateRefreshToken } from '../middlewares/jwtMiddleware.js';
 
 const register = async (req, res) => {
-    const { username, password, fullname, address, phoneNumber } = req.body;
+    const { username, password, fullname, address, phoneNumber, role = 'user' } = req.body;
 
     try {
         if (!username || !password || !fullname || !address || !phoneNumber) {
@@ -43,11 +43,12 @@ const register = async (req, res) => {
                 fullname,
                 address,
                 phoneNumber,
+                role,
             ]);
 
         const [newUser] = await connection
             .promise()
-            .query('SELECT username, password, fullname, address, phoneNumber FROM user WHERE username = ?', [
+            .query('SELECT username, password, fullname, address, phoneNumber, role FROM user WHERE username = ?', [
                 username,
             ]);
 
@@ -92,7 +93,10 @@ const login = asyncHandler(async (req, res) => {
         fullname: user[0].fullname,
         address: user[0].address,
         phoneNumber: user[0].phoneNumber,
+        role: user[0].role,
     };
+
+    await connection.promise().query('UPDATE user SET refreshToken = ? WHERE username = ?', [refreshToken, username]);
 
     res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
@@ -118,13 +122,13 @@ const logout = asyncHandler(async (req, res) => {
     }
 
     // Delete refreshToken from the database
-    // const [result] = await connection
-    //     .promise()
-    //     .query('UPDATE user SET refreshToken = NULL WHERE refreshToken = ?', [cookie.refreshToken]);
+    const [result] = await connection
+        .promise()
+        .query('UPDATE user SET refreshToken = NULL WHERE refreshToken = ?', [cookie.refreshToken]);
 
-    // if (result.affectedRows === 0) {
-    //     return res.status(400).json({ success: false, message: 'Refresh token not found in the database' });
-    // }
+    if (result.affectedRows === 0) {
+        return res.status(400).json({ success: false, message: 'Refresh token not found in the database' });
+    }
     res.clearCookie('refreshToken', {
         httpOnly: true,
         secure: true,
