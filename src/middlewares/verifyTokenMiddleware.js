@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
-const asyncHandler = require('express-async-handler');
+import jwt from 'jsonwebtoken';
+import asyncHandler from 'express-async-handler';
 
-const verifyAccessToken = asyncHandler(async (req, res, next) => {
+export const verifyAccessToken = asyncHandler(async (req, res, next) => {
     const token = req.headers.authorization;
     if (req?.headers?.authorization.startsWith('Bearer')) {
         const accessToken = token.split(' ')[1];
@@ -23,7 +23,7 @@ const verifyAccessToken = asyncHandler(async (req, res, next) => {
     }
 });
 
-const checkIsStaff = asyncHandler(async (req, res, next) => {
+export const checkIsStaff = asyncHandler(async (req, res, next) => {
     const { isAdmin, role } = req.user;
     if (role !== 'staff') {
         res.status(401).json({
@@ -34,7 +34,7 @@ const checkIsStaff = asyncHandler(async (req, res, next) => {
     next();
 });
 
-const checkIsAdmin = asyncHandler(async (req, res, next) => {
+export const checkIsAdmin = asyncHandler(async (req, res, next) => {
     const { isAdmin, role } = req.user;
     if (isAdmin === false && role !== 'admin') {
         res.status(401).json({
@@ -45,7 +45,7 @@ const checkIsAdmin = asyncHandler(async (req, res, next) => {
     if (isAdmin === true || role === 'admin') next();
 });
 
-const checkAdminOrStaff = (req, res, next) => {
+export const checkAdminOrStaff = (req, res, next) => {
     checkIsAdmin((req, res), (err) => {
         if (err) {
             checkIsStaff(req, res, (err) => {
@@ -61,4 +61,4 @@ const checkAdminOrStaff = (req, res, next) => {
     });
 };
 
-module.exports = { verifyAccessToken, checkIsStaff, checkIsAdmin, checkAdminOrStaff };
+// export default { verifyAccessToken, checkIsStaff, checkIsAdmin, checkAdminOrStaff };
