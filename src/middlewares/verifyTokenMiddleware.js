@@ -45,20 +45,28 @@ export const checkIsAdmin = asyncHandler(async (req, res, next) => {
     if (isAdmin === true || role === 'admin') next();
 });
 
-export const checkAdminOrStaff = (req, res, next) => {
-    checkIsAdmin((req, res), (err) => {
-        if (err) {
-            checkIsStaff(req, res, (err) => {
-                if (err) {
-                    return res.status(403).json({ message: 'Access denied staff' });
-                } else {
-                    next();
-                }
-            });
-        } else {
-            next();
-        }
-    });
-};
+export const checkAdminOrStaff = asyncHandler(async (req, res, next) => {
+    // checkIsAdmin((req, res), (err) => {
+    //     if (err) {
+    //         checkIsStaff(req, res, (err) => {
+    //             if (err) {
+    //                 return res.status(403).json({ message: 'Access denied staff' });
+    //             } else {
+    //                 next();
+    //             }
+    //         });
+    //     } else {
+    //         next();
+    //     }
+    // });
+    const { role } = req.user;
+    console.log('req.user: ', req.user);
+    if (role === 'admin' || role === 'staff') {
+        next();
+    } else {
+        // Nếu không phải, trả về thông báo truy cập bị từ chối
+        return res.status(403).json({ message: 'Bạn không có quyền để truy cập vào.' });
+    }
+});
 
 // export default { verifyAccessToken, checkIsStaff, checkIsAdmin, checkAdminOrStaff };

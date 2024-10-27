@@ -85,8 +85,8 @@ const login = asyncHandler(async (req, res) => {
     }
 
     // Generate tokens
-    const accessToken = generateAccessToken({ username: user[0].username });
-    const refreshToken = generateRefreshToken({ username: user[0].username });
+    const accessToken = generateAccessToken(user[0].username, user[0].role);
+    const refreshToken = generateRefreshToken(user[0].username);
 
     const userInfo = {
         username: user[0].username,
@@ -108,8 +108,8 @@ const login = asyncHandler(async (req, res) => {
     res.status(200).json({
         success: true,
         message: 'Đăng nhập thành công',
-        user: userInfo,
         accessToken,
+        user: userInfo,
     });
 });
 
@@ -140,8 +140,49 @@ const logout = asyncHandler(async (req, res) => {
     });
 });
 
+const createUser = asyncHandler(async (req, res) => {
+    const { username, password, fullname, address, phoneNumber, role } = req.body;
+    const currentRoleUser = req.user.role;
+
+    // Kiểm tra dữ liệu đầu vào
+    if (!username) {
+        return res.status(400).json({ success: false, message: 'Vui lòng cung cấp username' });
+    }
+
+    const finalPassword = password || '123456';
+
+    // Kiểm tra số điện thoại
+    if (phoneNumber && !/^\d{10}$/.test(phoneNumber)) {
+        return res.status(400).json({ message: 'Số điện thoại phải đủ 10 kí tự' });
+    }
+
+    // Kiểm tra người dùng đã tồn tại
+    const [existingUser] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
+    if (existingUser.length > 0) {
+        return res.status(400).json({ success: false, message: 'Username đã tồn tại. Hãy đăng kí username khác' });
+    }
+
+    const inputRole = currentRoleUser === 'staff' ? 'user' : role;
+    // Mã hóa mật khẩu
+    const hashedPassword = await bcrypt.hash(finalPassword, 10);
+    await connection
+        .promise()
+        .query(
+            'INSERT INTO user (username, password, fullname, address, phoneNumber, role) VALUES (?, ?, ?, ?, ?, ?)',
+            [username, hashedPassword, fullname, address, phoneNumber, inputRole || 'user'],
+        );
+
+    const [newUser] = await connection
+        .promise()
+        .query('SELECT username, fullname, address, phoneNumber, role FROM user WHERE username = ?', [username]);
+
+    console.log('Đăng ký thành công:', newUser[0]);
+
+    res.status(201).json({ success: true, message: 'Tạo người dùng thành công', newUser });
+});
 export default {
     register,
     login,
     logout,
+    createUser,
 };
