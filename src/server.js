@@ -1,8 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import { env } from '~/config/environment';
 import { StatusCodes } from 'http-status-codes';
 import connection from './config/database';
+import 'dotenv/config';
 
 const START_SERVER = () => {
     const app = express();
