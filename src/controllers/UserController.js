@@ -181,6 +181,47 @@ const createUser = asyncHandler(async (req, res) => {
     res.status(201).json({ success: true, message: 'Tạo người dùng thành công', newUser });
 });
 
+const updateUser = asyncHandler(async (req, res) => {
+    const { username } = req.params; // Username to update, from URL
+    const { fullname, address, phoneNumber } = req.body; // Updated information
+    const currentUserRole = req.user.role; // Requesting user's role from JWT or session
+
+    if (!fullname || !address || !phoneNumber) {
+        return res.status(404).json({
+            success: false,
+            message: 'Bạn cần nhập họ tên, địa chỉ, hoặc sđt để chỉnh sửa',
+        });
+    }
+    if (!/^\d{10}$/.test(phoneNumber)) {
+        return res.status(400).json({ message: 'Số điện thoại phải đủ 10 kí tự' });
+    }
+
+    const [updatedUser] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
+    if (updatedUser.length === 0) {
+        return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+    }
+
+    const updatedUserRole = updatedUser[0].role;
+    if (currentUserRole === updatedUserRole) {
+        return res
+            .status(403)
+            .json({ success: false, message: 'Không được chỉnh sửa thông tin người có role cùng cấp' });
+    }
+    if (currentUserRole === 'staff' && updatedUserRole !== 'user') {
+        return res.status(403).json({ success: false, message: 'Nhân viên chỉ có thể sửa thông tin của người dùng' });
+    }
+
+    await connection
+        .promise()
+        .query('UPDATE user SET fullname = ?, address = ?, phoneNumber = ? WHERE username = ?', [
+            fullname,
+            address,
+            phoneNumber,
+            username,
+        ]);
+    return res.status(200).json({ success: true, message: `Cập nhật thông tin người dùng ${username} thành công` });
+});
+
 const deleteUser = asyncHandler(async (req, res) => {
     const { username } = req.params; // Assuming the username to delete is passed as a URL parameter
     const currentRoleUser = req.user.role; // The role of the requesting user, e.g., from JWT
@@ -196,9 +237,9 @@ const deleteUser = asyncHandler(async (req, res) => {
         return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
     }
 
-    const userToDeleteRole = user[0].role;
+    const deletedRoleUser = user[0].role;
     // Prevent deletion of users with the same role
-    if (userToDeleteRole === currentRoleUser) {
+    if (deletedRoleUser === currentRoleUser) {
         return res.status(401).json({ success: false, message: 'Không được xoá ngưười có role cùng cấp' });
     }
 
@@ -213,5 +254,6 @@ export default {
     login,
     logout,
     createUser,
+    updateUser,
     deleteUser,
 };
