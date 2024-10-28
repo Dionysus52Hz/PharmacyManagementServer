@@ -190,14 +190,16 @@ const updateUser = asyncHandler(async (req, res) => {
     const { username } = req.params; // Username to update, from URL
     const { fullname, address, phoneNumber } = req.body; // Updated information
     const currentUserRole = req.user.role; // Requesting user's role from JWT or session
+    const currentUsername = req.user.username;
 
-    if (!fullname || !address || !phoneNumber) {
-        return res.status(404).json({
+    // Kiểm tra ít nhất một trường không để trống
+    if (!fullname && !address && !phoneNumber) {
+        return res.status(400).json({
             success: false,
-            message: 'Bạn cần nhập họ tên, địa chỉ, hoặc sđt để chỉnh sửa',
+            message: 'Bạn cần nhập ít nhất một trong các thông tin: họ tên, địa chỉ, hoặc số điện thoại để chỉnh sửa',
         });
     }
-    if (!/^\d{10}$/.test(phoneNumber)) {
+    if (phoneNumber && !/^\d{10}$/.test(phoneNumber)) {
         return res.status(400).json({ message: 'Số điện thoại phải đủ 10 kí tự' });
     }
 
@@ -207,23 +209,35 @@ const updateUser = asyncHandler(async (req, res) => {
     }
 
     const updatedUserRole = updatedUser[0].role;
-    if (currentUserRole === updatedUserRole) {
+    if (currentUserRole === updatedUserRole && currentUsername !== username) {
         return res
             .status(403)
             .json({ success: false, message: 'Không được chỉnh sửa thông tin người có role cùng cấp' });
     }
-    if (currentUserRole === 'staff' && updatedUserRole !== 'user') {
+    if (currentUserRole === 'staff' && updatedUserRole !== 'user' && currentUsername !== username) {
         return res.status(403).json({ success: false, message: 'Nhân viên chỉ có thể sửa thông tin của người dùng' });
     }
 
-    await connection
-        .promise()
-        .query('UPDATE user SET fullname = ?, address = ?, phoneNumber = ? WHERE username = ?', [
-            fullname,
-            address,
-            phoneNumber,
-            username,
-        ]);
+    // Tạo câu lệnh cập nhật chỉ cho những trường đã có giá trị
+    const updates = [];
+    const values = [];
+
+    if (fullname) {
+        updates.push('fullname = ?');
+        values.push(fullname);
+    }
+    if (address) {
+        updates.push('address = ?');
+        values.push(address);
+    }
+    if (phoneNumber) {
+        updates.push('phoneNumber = ?');
+        values.push(phoneNumber);
+    }
+    // Thêm username vào cuối để cập nhật cho đúng người dùng
+    values.push(username);
+
+    await connection.promise().query(`UPDATE user SET ${updates.join(', ')} WHERE username = ?`, values);
     return res.status(200).json({ success: true, message: `Cập nhật thông tin người dùng ${username} thành công` });
 });
 
@@ -281,7 +295,6 @@ const lockUser = asyncHandler(async (req, res) => {
     if (currentRole === 'staff' && targetRoleUser !== 'user') {
         return res.status(403).json({ success: false, message: 'Staff chỉ có thể khóa/mở khóa user' });
     }
-
     // Đảo ngược trạng thái khóa/mở khóa
     const newIsLocked = !targetIsLocked;
     await connection.promise().query('UPDATE user SET isLocked = ? WHERE username = ?', [newIsLocked, username]);
@@ -307,6 +320,26 @@ const searchUser = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, user });
 });
 
+const getDetailUser = asyncHandler(async (req, res) => {
+    const { username } = req.params; // Lấy username từ URL parameters
+
+    // Kiểm tra xem người dùng có tồn tại không
+    const [user] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
+    if (user.length === 0) {
+        return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+    }
+    const userInfo = {
+        username: user[0].username,
+        fullname: user[0].fullname,
+        address: user[0].address,
+        phoneNumber: user[0].phoneNumber,
+        role: user[0].role,
+        isLocked: user[0].isLocked, // Nếu cần, có thể thêm trường này
+    };
+
+    return res.status(200).json({ success: true, userInfo });
+});
+
 export default {
     register,
     login,
@@ -316,4 +349,5 @@ export default {
     deleteUser,
     searchUser,
     lockUser,
+    getDetailUser,
 };

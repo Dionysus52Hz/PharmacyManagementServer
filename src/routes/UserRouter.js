@@ -7,6 +7,7 @@ const router = express.Router();
 router.put('/updateUser/:username', [verifyAccessToken, checkAdminOrStaff], UserController.updateUser);
 router.delete('/deleteUser/:username', [verifyAccessToken, checkAdminOrStaff], UserController.deleteUser);
 router.put('/lockUser/:username', [verifyAccessToken, checkAdminOrStaff], UserController.lockUser);
+router.get('/getDetailUser/:username', [verifyAccessToken, checkAdminOrStaff], UserController.getDetailUser);
 
 router.post('/register', UserController.register);
 router.post('/login', UserController.login);
