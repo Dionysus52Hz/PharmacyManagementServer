@@ -78,6 +78,11 @@ const login = asyncHandler(async (req, res) => {
         return res.status(404).json({ success: false, message: 'Tài khoản không tồn tại' });
     }
 
+    // Check if the user is locked
+    if (user[0].isLocked) {
+        return res.status(403).json({ success: false, message: 'Tài khoản của bạn đã bị khóa' });
+    }
+
     // Validate password
     const isMatch = await bcrypt.compare(password, user[0].password);
     if (!isMatch) {
@@ -250,6 +255,42 @@ const deleteUser = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, message: `Xóa thành công người dùng ${username}` });
 });
 
+const lockUser = asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    const currentRole = req.user.role;
+    const currentUsername = req.user.username;
+
+    // Kiểm tra người dùng tồn tại
+    const [user] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
+    if (user.length === 0) {
+        return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+    }
+
+    const targetRoleUser = user[0].role;
+    const targetIsLocked = user[0].isLocked;
+
+    // Khoá/mở khoá chính mình
+    if (username === currentUsername) {
+        return res.status(403).json({ success: false, message: 'Không được khóa/mở khóa chính mình' });
+    }
+    // Khoá/mở khoá người cùng role
+    if (currentRole === targetRoleUser) {
+        return res.status(403).json({ success: false, message: 'Không được khoá/mở khoá người cùng chức vụ' });
+    }
+    // Khoá/mở khoá cho staff
+    if (currentRole === 'staff' && targetRoleUser !== 'user') {
+        return res.status(403).json({ success: false, message: 'Staff chỉ có thể khóa/mở khóa user' });
+    }
+
+    // Đảo ngược trạng thái khóa/mở khóa
+    const newIsLocked = !targetIsLocked;
+    await connection.promise().query('UPDATE user SET isLocked = ? WHERE username = ?', [newIsLocked, username]);
+    const action = newIsLocked ? 'Khóa' : 'Mở Khóa';
+    console.log(`User ${username} đã được ${action} bởi ${currentRole}`);
+
+    return res.status(200).json({ success: true, message: `${action} tài khoản người dùng ${username}` });
+});
+
 const searchUser = asyncHandler(async (req, res) => {
     const { username } = req.query; // Search term from the query parameter
     if (!username) {
@@ -274,4 +315,5 @@ export default {
     updateUser,
     deleteUser,
     searchUser,
+    lockUser,
 };
