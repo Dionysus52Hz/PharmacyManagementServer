@@ -8,5 +8,5 @@ const router = express.Router();
 router.post('/', jwtMiddleware, InvoiceController.createInvoice);
 router.get('/', jwtMiddleware, InvoiceController.getInvoices);
 router.put('/:id', jwtMiddleware, InvoiceController.updateInvoice);
-
+router.get('/search', jwtMiddleware, InvoiceController.searchInvoices);
 module.exports = router;

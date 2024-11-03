@@ -42,6 +42,35 @@ class InvoiceController {
             res.status(500).json({ error: error.message });
         }
     }
+    static async searchInvoices(req, res) {
+        const { userId } = req;
+        const { status, minAmount, maxAmount } = req.query;
+
+        let query = 'SELECT * FROM invoices WHERE user_id = ?';
+        const params = [userId];
+
+        if (status) {
+            query += ' AND status = ?';
+            params.push(status);
+        }
+
+        if (minAmount) {
+            query += ' AND amount >= ?';
+            params.push(minAmount);
+        }
+
+        if (maxAmount) {
+            query += ' AND amount <= ?';
+            params.push(maxAmount);
+        }
+
+        try {
+            const [invoices] = await pool.execute(query, params);
+            res.json(invoices);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
 }
 
 module.exports = InvoiceController;
