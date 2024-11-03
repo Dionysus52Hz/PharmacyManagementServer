@@ -6,3 +6,5 @@ export const generateAccessToken = (username, role) => {
 export const generateRefreshToken = (username) => {
     return jwt.sign({ username }, process.env.JWT_REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
 };
+
+
