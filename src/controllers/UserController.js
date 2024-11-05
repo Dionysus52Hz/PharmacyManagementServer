@@ -23,8 +23,10 @@ const register = async (req, res) => {
         }
 
         // Kiểm tra số điện thoại
-        if (!/^\d{10}$/.test(phoneNumber)) {
-            return res.status(400).json({ message: 'Số điện thoại phải đủ 10 kí tự' });
+        if (!/^(09|03|07|08|05)\d{8}$/.test(phoneNumber)) {
+            return res
+                .status(400)
+                .json({ message: 'Số điện thoại phải có 10 chữ số và bắt đầu bằng 09, 03, 07, 08 hoặc 05.' });
         }
 
         // Kiểm tra người dùng đã tồn tại
@@ -162,8 +164,10 @@ const createUser = asyncHandler(async (req, res) => {
     const finalPassword = password || '123456';
 
     // Kiểm tra số điện thoại
-    if (phoneNumber && !/^\d{10}$/.test(phoneNumber)) {
-        return res.status(400).json({ message: 'Số điện thoại phải đủ 10 kí tự' });
+    if (phoneNumber && !/^(09|03|07|08|05)\d{8}$/.test(phoneNumber)) {
+        return res
+            .status(400)
+            .json({ message: 'Số điện thoại phải có 10 chữ số và bắt đầu bằng 09, 03, 07, 08 hoặc 05.' });
     }
 
     // Kiểm tra người dùng đã tồn tại
@@ -213,8 +217,10 @@ const updateUserFromAdmin = asyncHandler(async (req, res) => {
             message: 'Bạn cần nhập ít nhất một trong các thông tin: họ tên, địa chỉ, hoặc số điện thoại để chỉnh sửa',
         });
     }
-    if (phoneNumber && !/^\d{10}$/.test(phoneNumber)) {
-        return res.status(400).json({ message: 'Số điện thoại phải đủ 10 kí tự' });
+    if (phoneNumber && !/^(09|03|07|08|05)\d{8}$/.test(phoneNumber)) {
+        return res
+            .status(400)
+            .json({ message: 'Số điện thoại phải có 10 chữ số và bắt đầu bằng 09, 03, 07, 08 hoặc 05.' });
     }
 
     // Kiểm tra người dùng cần cập nhật có tồn tại không
@@ -255,34 +261,6 @@ const updateUserFromAdmin = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, message: `Cập nhật thông tin người dùng ${username} thành công` });
 });
 
-// const deleteUser = asyncHandler(async (req, res) => {
-//     const { username } = req.params; // Assuming the username to delete is passed as a URL parameter
-//     const currentRoleUser = req.user.role; // The role of the requesting user, e.g., from JWT
-
-//     // Check if the requesting user has permission to delete
-//     if (currentRoleUser !== 'admin') {
-//         return res.status(403).json({ success: false, message: 'Chỉ có admin mới được phép xóa người dùng' });
-//     }
-
-//     // Check if the user exists
-//     const [user] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
-//     if (user.length === 0) {
-//         return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
-//     }
-
-//     const deletedRoleUser = user[0].role;
-//     // Prevent deletion of users with the same role
-//     if (deletedRoleUser === currentRoleUser) {
-//         return res.status(401).json({ success: false, message: 'Không được xoá ngưười có role cùng cấp' });
-//     }
-
-//     // Proceed with deletion
-//     await connection.promise().query('DELETE FROM user WHERE username = ?', [username]);
-//     console.log(`Xóa thành công người dùng ${username}`);
-
-//     return res.status(200).json({ success: true, message: `Xóa thành công người dùng ${username}` });
-// });
-
 const deleteUser = asyncHandler(async (req, res) => {
     const { username } = req.params; // Username cần xóa, lấy từ URL
     const currentRoleUser = req.user.role; // Role của người yêu cầu, lấy từ JWT
@@ -314,41 +292,6 @@ const deleteUser = asyncHandler(async (req, res) => {
 
     return res.status(200).json({ success: true, message: `Xóa thành công người dùng ${username}` });
 });
-
-// const lockUser = asyncHandler(async (req, res) => {
-//     const { username } = req.params;
-//     const currentRole = req.user.role;
-//     const currentUsername = req.user.username;
-
-//     // Kiểm tra người dùng tồn tại
-//     const [user] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
-//     if (user.length === 0) {
-//         return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
-//     }
-
-//     const targetRoleUser = user[0].role;
-//     const targetIsLocked = user[0].isLocked;
-
-//     // Khoá/mở khoá chính mình
-//     if (username === currentUsername) {
-//         return res.status(403).json({ success: false, message: 'Không được khóa/mở khóa chính mình' });
-//     }
-//     // Khoá/mở khoá người cùng role
-//     if (currentRole === targetRoleUser) {
-//         return res.status(403).json({ success: false, message: 'Không được khoá/mở khoá người cùng chức vụ' });
-//     }
-//     // Khoá/mở khoá cho staff
-//     if (currentRole === 'staff' && targetRoleUser !== 'user') {
-//         return res.status(403).json({ success: false, message: 'Staff chỉ có thể khóa/mở khóa user' });
-//     }
-//     // Đảo ngược trạng thái khóa/mở khóa
-//     const newIsLocked = !targetIsLocked;
-//     await connection.promise().query('UPDATE user SET isLocked = ? WHERE username = ?', [newIsLocked, username]);
-//     const action = newIsLocked ? 'Khóa' : 'Mở Khóa';
-//     console.log(`User ${username} đã được ${action} bởi ${currentRole}`);
-
-//     return res.status(200).json({ success: true, message: `${action} tài khoản người dùng ${username}` });
-// });
 
 const lockUser = asyncHandler(async (req, res) => {
     const { username } = req.params;
@@ -531,6 +474,57 @@ const changePassword = async (req, res) => {
     }
 };
 
+const updateInfoMySelf = asyncHandler(async (req, res) => {
+    const { fullname, address, phoneNumber } = req.body; // Các trường được phép cập nhật
+    const username = req.user.username; // Lấy username từ thông tin người dùng đăng nhập (JWT hoặc session)
+
+    if (!username)
+        return res.status(401).json({
+            success: false,
+            message: 'Bạn không được phép cập nhật thông tin chính mình',
+        });
+    // Kiểm tra ít nhất một trường không để trống
+    if (!fullname && !address && !phoneNumber) {
+        return res.status(400).json({
+            success: false,
+            message: 'Bạn cần nhập ít nhất một trong các thông tin: họ tên, địa chỉ, hoặc số điện thoại để cập nhật',
+        });
+    }
+
+    // Kiểm tra định dạng số điện thoại
+    if (phoneNumber && !/^(09|03|07|08|05)\d{8}$/.test(phoneNumber)) {
+        return res
+            .status(400)
+            .json({ message: 'Số điện thoại phải có 10 chữ số và bắt đầu bằng 09, 03, 07, 08 hoặc 05.' });
+    }
+
+    // Tạo câu lệnh cập nhật chỉ cho những trường có giá trị
+    const updates = [];
+    const values = [];
+
+    if (fullname) {
+        updates.push('fullname = ?');
+        values.push(fullname);
+    }
+    if (address) {
+        updates.push('address = ?');
+        values.push(address);
+    }
+    if (phoneNumber) {
+        updates.push('phoneNumber = ?');
+        values.push(phoneNumber);
+    }
+
+    // Thêm username vào cuối để cập nhật đúng người dùng
+    values.push(username);
+
+    // Cập nhật thông tin trong cơ sở dữ liệu
+    await connection.promise().query(`UPDATE user SET ${updates.join(', ')} WHERE username = ?`, values);
+    console.log(`Cập nhật thông tin thành công cho người dùng ${username}`);
+
+    return res.status(200).json({ success: true, message: `Cập nhật thông tin thành công cho người dùng ${username}` });
+});
+
 export default {
     register,
     login,
@@ -543,4 +537,5 @@ export default {
     getDetailUser,
     filterUser,
     changePassword,
+    updateInfoMySelf,
 };
