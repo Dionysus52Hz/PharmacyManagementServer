@@ -146,8 +146,13 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 const createUser = asyncHandler(async (req, res) => {
-    const { username, password, fullname, address, phoneNumber, role } = req.body;
+    const { username, password, fullname, address, phoneNumber } = req.body;
     const currentRoleUser = req.user.role;
+
+    // Kiểm tra xem người dùng hiện tại có phải là admin
+    if (currentRoleUser !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Bạn không có quyền tạo người dùng mới.' });
+    }
 
     // Kiểm tra dữ liệu đầu vào
     if (!username) {
@@ -167,16 +172,18 @@ const createUser = asyncHandler(async (req, res) => {
         return res.status(400).json({ success: false, message: 'Username đã tồn tại. Hãy đăng kí username khác' });
     }
 
-    const inputRole = currentRoleUser === 'staff' ? 'user' : role;
     // Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(finalPassword, 10);
+
+    // Tạo người dùng mới với role mặc định là 'staff'
     await connection
         .promise()
         .query(
             'INSERT INTO user (username, password, fullname, address, phoneNumber, role) VALUES (?, ?, ?, ?, ?, ?)',
-            [username, hashedPassword, fullname, address, phoneNumber, inputRole || 'user'],
+            [username, hashedPassword, fullname, address, phoneNumber, 'staff'],
         );
 
+    // Lấy thông tin người dùng mới
     const [newUser] = await connection
         .promise()
         .query('SELECT username, fullname, address, phoneNumber, role FROM user WHERE username = ?', [username]);
@@ -186,11 +193,18 @@ const createUser = asyncHandler(async (req, res) => {
     res.status(201).json({ success: true, message: 'Tạo người dùng thành công', newUser });
 });
 
-const updateUser = asyncHandler(async (req, res) => {
+const updateUserFromAdmin = asyncHandler(async (req, res) => {
     const { username } = req.params; // Username to update, from URL
     const { fullname, address, phoneNumber } = req.body; // Updated information
     const currentUserRole = req.user.role; // Requesting user's role from JWT or session
-    const currentUsername = req.user.username;
+
+    // Kiểm tra quyền admin
+    if (currentUserRole !== 'admin') {
+        return res.status(403).json({
+            success: false,
+            message: 'Bạn không có quyền chỉnh sửa thông tin người dùng.',
+        });
+    }
 
     // Kiểm tra ít nhất một trường không để trống
     if (!fullname && !address && !phoneNumber) {
@@ -203,19 +217,19 @@ const updateUser = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: 'Số điện thoại phải đủ 10 kí tự' });
     }
 
+    // Kiểm tra người dùng cần cập nhật có tồn tại không
     const [updatedUser] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
     if (updatedUser.length === 0) {
         return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
     }
 
+    // Kiểm tra quyền của người dùng cần được cập nhật
     const updatedUserRole = updatedUser[0].role;
-    if (currentUserRole === updatedUserRole && currentUsername !== username) {
-        return res
-            .status(403)
-            .json({ success: false, message: 'Không được chỉnh sửa thông tin người có role cùng cấp' });
-    }
-    if (currentUserRole === 'staff' && updatedUserRole !== 'user' && currentUsername !== username) {
-        return res.status(403).json({ success: false, message: 'Nhân viên chỉ có thể sửa thông tin của người dùng' });
+    if (updatedUserRole === 'admin') {
+        return res.status(403).json({
+            success: false,
+            message: 'Bạn không được phép chỉnh sửa thông tin của các admin khác',
+        });
     }
 
     // Tạo câu lệnh cập nhật chỉ cho những trường đã có giá trị
@@ -406,9 +420,6 @@ const changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
     try {
-        console.log('username: ', username);
-        console.log('currentPassword: ', currentPassword);
-        console.log('newPassword: ', newPassword);
         // Kiểm tra xem người dùng đã cung cấp đầy đủ thông tin chưa
         if (!username || !currentPassword || !newPassword) {
             return res.status(400).json({ message: 'Bạn cần cung cấp đủ thông tin để đổi mật khẩu.' });
@@ -440,7 +451,7 @@ const changePassword = async (req, res) => {
             .promise()
             .query('UPDATE user SET password = ? WHERE username = ?', [hashedNewPassword, username]);
 
-        console.log('Đổi mật khẩu thành công cho người dùng:', username);
+        console.log('Đổi mật khẩu thành công cho người dùng ', username);
         return res.status(200).json({ message: 'Đổi mật khẩu thành công.' });
     } catch (error) {
         console.error('Error in changing password:', error);
@@ -453,7 +464,7 @@ export default {
     login,
     logout,
     createUser,
-    updateUser,
+    updateUserFromAdmin,
     deleteUser,
     searchUser,
     lockUser,

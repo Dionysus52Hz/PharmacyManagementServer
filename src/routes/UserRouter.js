@@ -4,7 +4,11 @@ import { verifyAccessToken, checkAdminOrStaff } from '../middlewares/verifyToken
 
 const router = express.Router();
 
-router.put('/updateUser/:username', [verifyAccessToken, checkAdminOrStaff], UserController.updateUser);
+router.put(
+    '/updateUserFromAdmin/:username',
+    [verifyAccessToken, checkAdminOrStaff],
+    UserController.updateUserFromAdmin,
+);
 router.delete('/deleteUser/:username', [verifyAccessToken, checkAdminOrStaff], UserController.deleteUser);
 router.put('/lockUser/:username', [verifyAccessToken, checkAdminOrStaff], UserController.lockUser);
 router.get('/getDetailUser/:username', [verifyAccessToken, checkAdminOrStaff], UserController.getDetailUser);
