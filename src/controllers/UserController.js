@@ -255,33 +255,100 @@ const updateUserFromAdmin = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, message: `Cập nhật thông tin người dùng ${username} thành công` });
 });
 
-const deleteUser = asyncHandler(async (req, res) => {
-    const { username } = req.params; // Assuming the username to delete is passed as a URL parameter
-    const currentRoleUser = req.user.role; // The role of the requesting user, e.g., from JWT
+// const deleteUser = asyncHandler(async (req, res) => {
+//     const { username } = req.params; // Assuming the username to delete is passed as a URL parameter
+//     const currentRoleUser = req.user.role; // The role of the requesting user, e.g., from JWT
 
-    // Check if the requesting user has permission to delete
+//     // Check if the requesting user has permission to delete
+//     if (currentRoleUser !== 'admin') {
+//         return res.status(403).json({ success: false, message: 'Chỉ có admin mới được phép xóa người dùng' });
+//     }
+
+//     // Check if the user exists
+//     const [user] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
+//     if (user.length === 0) {
+//         return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+//     }
+
+//     const deletedRoleUser = user[0].role;
+//     // Prevent deletion of users with the same role
+//     if (deletedRoleUser === currentRoleUser) {
+//         return res.status(401).json({ success: false, message: 'Không được xoá ngưười có role cùng cấp' });
+//     }
+
+//     // Proceed with deletion
+//     await connection.promise().query('DELETE FROM user WHERE username = ?', [username]);
+//     console.log(`Xóa thành công người dùng ${username}`);
+
+//     return res.status(200).json({ success: true, message: `Xóa thành công người dùng ${username}` });
+// });
+
+const deleteUser = asyncHandler(async (req, res) => {
+    const { username } = req.params; // Username cần xóa, lấy từ URL
+    const currentRoleUser = req.user.role; // Role của người yêu cầu, lấy từ JWT
+
+    // Chỉ cho phép admin thực hiện hành động xóa
     if (currentRoleUser !== 'admin') {
         return res.status(403).json({ success: false, message: 'Chỉ có admin mới được phép xóa người dùng' });
     }
 
-    // Check if the user exists
+    // Kiểm tra xem người dùng cần xóa có tồn tại không
     const [user] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
     if (user.length === 0) {
         return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
     }
 
     const deletedRoleUser = user[0].role;
-    // Prevent deletion of users with the same role
-    if (deletedRoleUser === currentRoleUser) {
-        return res.status(401).json({ success: false, message: 'Không được xoá ngưười có role cùng cấp' });
+
+    // Chỉ cho phép xóa nếu người dùng có role là 'staff'
+    if (deletedRoleUser !== 'staff') {
+        return res.status(403).json({
+            success: false,
+            message: 'Admin chỉ có thể xóa staff',
+        });
     }
 
-    // Proceed with deletion
+    // Tiến hành xóa người dùng
     await connection.promise().query('DELETE FROM user WHERE username = ?', [username]);
     console.log(`Xóa thành công người dùng ${username}`);
 
     return res.status(200).json({ success: true, message: `Xóa thành công người dùng ${username}` });
 });
+
+// const lockUser = asyncHandler(async (req, res) => {
+//     const { username } = req.params;
+//     const currentRole = req.user.role;
+//     const currentUsername = req.user.username;
+
+//     // Kiểm tra người dùng tồn tại
+//     const [user] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
+//     if (user.length === 0) {
+//         return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+//     }
+
+//     const targetRoleUser = user[0].role;
+//     const targetIsLocked = user[0].isLocked;
+
+//     // Khoá/mở khoá chính mình
+//     if (username === currentUsername) {
+//         return res.status(403).json({ success: false, message: 'Không được khóa/mở khóa chính mình' });
+//     }
+//     // Khoá/mở khoá người cùng role
+//     if (currentRole === targetRoleUser) {
+//         return res.status(403).json({ success: false, message: 'Không được khoá/mở khoá người cùng chức vụ' });
+//     }
+//     // Khoá/mở khoá cho staff
+//     if (currentRole === 'staff' && targetRoleUser !== 'user') {
+//         return res.status(403).json({ success: false, message: 'Staff chỉ có thể khóa/mở khóa user' });
+//     }
+//     // Đảo ngược trạng thái khóa/mở khóa
+//     const newIsLocked = !targetIsLocked;
+//     await connection.promise().query('UPDATE user SET isLocked = ? WHERE username = ?', [newIsLocked, username]);
+//     const action = newIsLocked ? 'Khóa' : 'Mở Khóa';
+//     console.log(`User ${username} đã được ${action} bởi ${currentRole}`);
+
+//     return res.status(200).json({ success: true, message: `${action} tài khoản người dùng ${username}` });
+// });
 
 const lockUser = asyncHandler(async (req, res) => {
     const { username } = req.params;
@@ -297,18 +364,23 @@ const lockUser = asyncHandler(async (req, res) => {
     const targetRoleUser = user[0].role;
     const targetIsLocked = user[0].isLocked;
 
-    // Khoá/mở khoá chính mình
+    if (currentRole !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Chỉ có admin mới được phép khoá/mở khoá' });
+    }
+
+    // Ngăn không cho khóa/mở khóa chính mình
     if (username === currentUsername) {
         return res.status(403).json({ success: false, message: 'Không được khóa/mở khóa chính mình' });
     }
-    // Khoá/mở khoá người cùng role
+    // Ngăn không cho khóa/mở khóa người cùng role
     if (currentRole === targetRoleUser) {
-        return res.status(403).json({ success: false, message: 'Không được khoá/mở khoá người cùng chức vụ' });
+        return res.status(403).json({ success: false, message: 'Không được khóa/mở khóa người có cùng chức vụ' });
     }
-    // Khoá/mở khoá cho staff
-    if (currentRole === 'staff' && targetRoleUser !== 'user') {
-        return res.status(403).json({ success: false, message: 'Staff chỉ có thể khóa/mở khóa user' });
+    // Chỉ cho phép admin khóa/mở khóa staff
+    if (currentRole === 'admin' && targetRoleUser !== 'staff') {
+        return res.status(403).json({ success: false, message: 'Admin chỉ có thể khóa/mở khóa staff' });
     }
+
     // Đảo ngược trạng thái khóa/mở khóa
     const newIsLocked = !targetIsLocked;
     await connection.promise().query('UPDATE user SET isLocked = ? WHERE username = ?', [newIsLocked, username]);
