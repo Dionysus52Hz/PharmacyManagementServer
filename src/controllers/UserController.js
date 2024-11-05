@@ -1,6 +1,4 @@
 import asyncHandler from 'express-async-handler';
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 
 import connection from '../config/database.js';
