@@ -7,7 +7,7 @@ import connection from '../config/database.js';
 import { generateAccessToken, generateRefreshToken } from '../middlewares/jwtMiddleware.js';
 
 const register = async (req, res) => {
-    const { username, password, fullname, address, phoneNumber, role = 'user' } = req.body;
+    const { username, password, fullname, address, phoneNumber, role = 'staff' } = req.body;
 
     try {
         if (!username || !password || !fullname || !address || !phoneNumber) {
@@ -304,22 +304,6 @@ const lockUser = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, message: `${action} tài khoản người dùng ${username}` });
 });
 
-const searchUser = asyncHandler(async (req, res) => {
-    const { username } = req.query; // Search term from the query parameter
-    if (!username) {
-        return res.status(400).json({ success: false, message: 'Vui lòng cung cấp tên người dùng để tìm kiếm' });
-    }
-    const [user] = await connection
-        .promise()
-        .query('SELECT username, fullname, address, phoneNumber, role FROM user WHERE username LIKE ?', [
-            `%${username}%`,
-        ]);
-    if (user.length === 0) {
-        return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng nào' });
-    }
-    return res.status(200).json({ success: true, user });
-});
-
 const getDetailUser = asyncHandler(async (req, res) => {
     const { username } = req.params; // Lấy username từ URL parameters
 
@@ -340,6 +324,130 @@ const getDetailUser = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, userInfo });
 });
 
+const searchUser = asyncHandler(async (req, res) => {
+    const { username } = req.query; // Search term from the query parameter
+    if (!username) {
+        return res.status(400).json({ success: false, message: 'Vui lòng cung cấp tên người dùng để tìm kiếm' });
+    }
+    const [user] = await connection
+        .promise()
+        .query('SELECT username, fullname, address, phoneNumber, role FROM user WHERE username LIKE ?', [
+            `%${username}%`,
+        ]);
+    if (user.length === 0) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng nào' });
+    }
+    return res.status(200).json({ success: true, user });
+});
+
+const filterUser = asyncHandler(async (req, res) => {
+    const { query, sortBy = 'username', order = 'asc' } = req.query; // Lấy query tìm kiếm và thông tin sắp xếp từ request
+
+    // Kiểm tra thông tin sắp xếp
+    const validSortFields = ['username', 'address', 'fullname', 'phoneNumber'];
+    if (!validSortFields.includes(sortBy)) {
+        return res.status(400).json({ success: false, message: 'Thông tin sắp xếp không hợp lệ' });
+    }
+
+    const validOrder = ['asc', 'desc'];
+    if (!validOrder.includes(order)) {
+        return res.status(400).json({ success: false, message: 'Thứ tự sắp xếp không hợp lệ' });
+    }
+
+    // Kiểm tra nếu query là phoneNumber và chỉ cho phép số
+    if (query && sortBy === 'phoneNumber' && isNaN(query)) {
+        return res.status(400).json({ success: false, message: 'Query phải là số khi tìm kiếm theo số điện thoại.' });
+    }
+
+    // Tạo điều kiện tìm kiếm
+    const searchCondition = query
+        ? 'WHERE username LIKE ? OR address LIKE ? OR fullname LIKE ? OR phoneNumber LIKE ?'
+        : '';
+    const searchValues = query
+        ? [
+              `%${query}%`,
+              `%${query}%`,
+              `%${query}%`,
+              `%${query}%`,
+              //   query,
+          ]
+        : [];
+
+    console.log('Search Condition:', searchCondition);
+    console.log(
+        `SELECT username, fullname, address, phoneNumber FROM user ${searchCondition} ORDER BY ${sortBy} ${order}`,
+    );
+    console.log('Search Values:', searchValues);
+    // Thực hiện truy vấn
+    const [users] = await connection
+        .promise()
+        .query(
+            `SELECT username, fullname, address, phoneNumber FROM user ${searchCondition} ORDER BY ${sortBy} ${order}`,
+            searchValues,
+        );
+
+    // const filteredUsers = users.filter(
+    //     (user) =>
+    //         user.phoneNumber.includes(query) ||
+    //         user.username.includes(query) ||
+    //         user.address.includes(query) ||
+    //         user.fullname.includes(query),
+    // );
+
+    res.status(200).json({
+        success: true,
+        users,
+        // filteredUsers,
+    });
+});
+
+const changePassword = async (req, res) => {
+    const { username } = req.user;
+    const { currentPassword, newPassword } = req.body;
+
+    try {
+        console.log('username: ', username);
+        console.log('currentPassword: ', currentPassword);
+        console.log('newPassword: ', newPassword);
+        // Kiểm tra xem người dùng đã cung cấp đầy đủ thông tin chưa
+        if (!username || !currentPassword || !newPassword) {
+            return res.status(400).json({ message: 'Bạn cần cung cấp đủ thông tin để đổi mật khẩu.' });
+        }
+
+        // Kiểm tra mật khẩu mới
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        if (!passwordRegex.test(newPassword)) {
+            return res
+                .status(400)
+                .json({ message: 'Mật khẩu mới phải gồm kí tự in hoa, kí tự thường, số và kí tự đặc biệt' });
+        }
+
+        // Lấy thông tin người dùng từ cơ sở dữ liệu
+        const [user] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
+        if (user.length === 0) {
+            return res.status(404).json({ message: 'Người dùng không tồn tại.' });
+        }
+
+        // Kiểm tra mật khẩu hiện tại
+        const isMatch = await bcrypt.compare(currentPassword, user[0].password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng.' });
+        }
+
+        // Mã hóa mật khẩu mới
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        await connection
+            .promise()
+            .query('UPDATE user SET password = ? WHERE username = ?', [hashedNewPassword, username]);
+
+        console.log('Đổi mật khẩu thành công cho người dùng:', username);
+        return res.status(200).json({ message: 'Đổi mật khẩu thành công.' });
+    } catch (error) {
+        console.error('Error in changing password:', error);
+        return res.status(500).json({ message: 'Server error', error });
+    }
+};
+
 export default {
     register,
     login,
@@ -350,4 +458,6 @@ export default {
     searchUser,
     lockUser,
     getDetailUser,
+    filterUser,
+    changePassword,
 };
