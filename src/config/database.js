@@ -8,4 +8,10 @@ const connection = mysql.createConnection({
     password: process.env.PASSWORD,
 });
 
-export default connection;
+const pool = mysql.createPool(connection);
+
+
+export default {
+    connection,
+    pool
+    };
