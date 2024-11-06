@@ -46,12 +46,14 @@ const register = async (req, res) => {
         }
 
         // Kiểm tra người dùng đã tồn tại
-        const [existingUser] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
+        const [existingUser] = await connection
+            .promise()
+            .query('SELECT * FROM employees WHERE username = ?', [username]);
         if (existingUser.length > 0) {
             return res.status(400).json({ message: 'Username đã tồn tại. Hãy đăng kí username khác' });
         }
 
-        const [lastId] = await connection.promise().query('SELECT MAX(id) AS maxId FROM user');
+        const [lastId] = await connection.promise().query('SELECT MAX(id) AS maxId FROM employees');
         const maxId = lastId[0].maxId;
 
         // Kiểm tra nếu maxId là null và khởi tạo newId
@@ -63,7 +65,7 @@ const register = async (req, res) => {
         await connection
             .promise()
             .query(
-                'INSERT INTO user (id, username, password, fullname, address, phoneNumber, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO employees (id, username, password, fullname, address, phoneNumber, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 [
                     newId,
                     username,
@@ -79,7 +81,7 @@ const register = async (req, res) => {
         const [newUser] = await connection
             .promise()
             .query(
-                'SELECT id, username, fullname, address, phoneNumber, role, createdAt, updatedAt FROM user WHERE username = ?',
+                'SELECT id, username, fullname, address, phoneNumber, role, createdAt, updatedAt FROM employees WHERE username = ?',
                 [username],
             );
 
@@ -103,7 +105,7 @@ const login = asyncHandler(async (req, res) => {
     }
 
     // Check if the user exists
-    const [user] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
+    const [user] = await connection.promise().query('SELECT * FROM employees WHERE username = ?', [username]);
 
     if (user.length === 0) {
         return res.status(404).json({ success: false, message: 'Tài khoản không tồn tại' });
@@ -200,14 +202,14 @@ const createUser = asyncHandler(async (req, res) => {
             .json({ message: 'Số điện thoại phải có 10 chữ số và bắt đầu bằng 09, 03, 07, 08 hoặc 05.' });
     }
 
-    const [lastId] = await connection.promise().query('SELECT MAX(id) AS maxId FROM user');
+    const [lastId] = await connection.promise().query('SELECT MAX(id) AS maxId FROM employees');
     const maxId = lastId[0].maxId;
 
     // Kiểm tra nếu maxId là null và khởi tạo newId
     const newId = maxId ? `EP${String(parseInt(maxId.replace('EP', '')) + 1).padStart(2, '0')}` : 'EP01';
 
     // Kiểm tra người dùng đã tồn tại
-    const [existingUser] = await connection.promise().query('SELECT * FROM user WHERE username = ?', [username]);
+    const [existingUser] = await connection.promise().query('SELECT * FROM employees WHERE username = ?', [username]);
     if (existingUser.length > 0) {
         return res.status(400).json({ success: false, message: 'Username đã tồn tại. Hãy đăng kí username khác' });
     }
@@ -219,14 +221,16 @@ const createUser = asyncHandler(async (req, res) => {
     await connection
         .promise()
         .query(
-            'INSERT INTO user (id, username, password, fullname, address, phoneNumber, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO employees (id, username, password, fullname, address, phoneNumber, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [newId, username, hashedPassword, fullname, address, phoneNumber, 'staff'],
         );
 
     // Lấy thông tin người dùng mới
     const [newUser] = await connection
         .promise()
-        .query('SELECT id, username, fullname, address, phoneNumber, role FROM user WHERE username = ?', [username]);
+        .query('SELECT id, username, fullname, address, phoneNumber, role FROM employees WHERE username = ?', [
+            username,
+        ]);
 
     console.log('Đăng ký thành công:', newUser[0]);
 
@@ -237,6 +241,7 @@ const updateUserFromAdmin = asyncHandler(async (req, res) => {
     const { id } = req.params; // ID to update, from URL
     const { fullname, address, phoneNumber } = req.body; // Updated information
     const currentUserRole = req.user.role; // Requesting user's role from JWT or session
+    const currentUserId = req.user.id;
 
     // Kiểm tra quyền admin
     if (currentUserRole !== 'admin') {
@@ -261,14 +266,14 @@ const updateUserFromAdmin = asyncHandler(async (req, res) => {
     }
 
     // Kiểm tra người dùng cần cập nhật có tồn tại không
-    const [updatedUser] = await connection.promise().query('SELECT * FROM user WHERE id = ?', [id]);
+    const [updatedUser] = await connection.promise().query('SELECT * FROM employees WHERE id = ?', [id]);
     if (updatedUser.length === 0) {
         return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
     }
 
     // Kiểm tra quyền của người dùng cần được cập nhật
     const updatedUserRole = updatedUser[0].role;
-    if (updatedUserRole === 'admin') {
+    if (id !== currentUserId && updatedUserRole === 'admin') {
         return res.status(403).json({
             success: false,
             message: 'Bạn không được phép chỉnh sửa thông tin của các admin khác',
@@ -294,7 +299,7 @@ const updateUserFromAdmin = asyncHandler(async (req, res) => {
     // Thêm id vào cuối để cập nhật cho đúng người dùng
     values.push(id);
 
-    await connection.promise().query(`UPDATE user SET ${updates.join(', ')} WHERE id = ?`, values);
+    await connection.promise().query(`UPDATE employees SET ${updates.join(', ')} WHERE id = ?`, values);
     return res.status(200).json({ success: true, message: `Cập nhật thông tin người dùng với ID ${id} thành công` });
 });
 
@@ -308,7 +313,7 @@ const deleteUser = asyncHandler(async (req, res) => {
     }
 
     // Kiểm tra xem người dùng cần xóa có tồn tại không
-    const [user] = await connection.promise().query('SELECT * FROM user WHERE id = ?', [id]);
+    const [user] = await connection.promise().query('SELECT * FROM employees WHERE id = ?', [id]);
     if (user.length === 0) {
         return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
     }
@@ -324,7 +329,7 @@ const deleteUser = asyncHandler(async (req, res) => {
     }
 
     // Tiến hành xóa người dùng
-    await connection.promise().query('DELETE FROM user WHERE id = ?', [id]);
+    await connection.promise().query('DELETE FROM employees WHERE id = ?', [id]);
     console.log(`Xóa thành công người dùng với ID ${id}`);
 
     return res.status(200).json({ success: true, message: `Xóa thành công người dùng với ID ${id}` });
@@ -335,7 +340,7 @@ const lockUser = asyncHandler(async (req, res) => {
     const currentUsername = req.user.username;
 
     // Kiểm tra người dùng tồn tại
-    const [user] = await connection.promise().query('SELECT * FROM user WHERE id = ?', [id]);
+    const [user] = await connection.promise().query('SELECT * FROM employees WHERE id = ?', [id]);
     if (user.length === 0) {
         return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
     }
@@ -364,7 +369,7 @@ const lockUser = asyncHandler(async (req, res) => {
 
     // Đảo ngược trạng thái khóa/mở khóa
     const newIsLocked = !targetIsLocked;
-    await connection.promise().query('UPDATE user SET isLocked = ? WHERE id = ?', [newIsLocked, id]);
+    await connection.promise().query('UPDATE employees SET isLocked = ? WHERE id = ?', [newIsLocked, id]);
     const action = newIsLocked ? 'Khóa' : 'Mở Khóa';
     console.log(`User với ID ${id} đã được ${action} bởi ${currentRole}`);
 
@@ -375,7 +380,7 @@ const getDetailUser = asyncHandler(async (req, res) => {
     const { id } = req.params; // Lấy id từ URL parameters
 
     // Kiểm tra xem người dùng có tồn tại không
-    const [user] = await connection.promise().query('SELECT * FROM user WHERE id = ?', [id]);
+    const [user] = await connection.promise().query('SELECT * FROM employees WHERE id = ?', [id]);
     if (user.length === 0) {
         return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
     }
@@ -393,24 +398,9 @@ const getDetailUser = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, userInfo });
 });
 
-const searchUser = asyncHandler(async (req, res) => {
-    const { username } = req.query; // Search term from the query parameter
-    if (!username) {
-        return res.status(400).json({ success: false, message: 'Vui lòng cung cấp tên người dùng để tìm kiếm' });
-    }
-    const [user] = await connection
-        .promise()
-        .query('SELECT username, fullname, address, phoneNumber, role FROM user WHERE username LIKE ?', [
-            `%${username}%`,
-        ]);
-    if (user.length === 0) {
-        return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng nào' });
-    }
-    return res.status(200).json({ success: true, user });
-});
-
 const filterUser = asyncHandler(async (req, res) => {
     const { query, sortBy = 'username', order = 'asc' } = req.query; // Lấy query tìm kiếm và thông tin sắp xếp từ request
+    // query: tìm từ ở tất cả fields
 
     // Kiểm tra thông tin sắp xếp
     const validSortFields = ['username', 'address', 'fullname', 'phoneNumber'];
@@ -444,14 +434,14 @@ const filterUser = asyncHandler(async (req, res) => {
 
     console.log('Search Condition:', searchCondition);
     console.log(
-        `SELECT username, fullname, address, phoneNumber FROM user ${searchCondition} ORDER BY ${sortBy} ${order}`,
+        `SELECT username, fullname, address, phoneNumber FROM employees ${searchCondition} ORDER BY ${sortBy} ${order}`,
     );
     console.log('Search Values:', searchValues);
     // Thực hiện truy vấn
     const [users] = await connection
         .promise()
         .query(
-            `SELECT username, fullname, address, phoneNumber FROM user ${searchCondition} ORDER BY ${sortBy} ${order}`,
+            `SELECT username, fullname, address, phoneNumber FROM employees ${searchCondition} ORDER BY ${sortBy} ${order}`,
             searchValues,
         );
 
@@ -489,7 +479,7 @@ const changePassword = async (req, res) => {
         }
 
         // Lấy thông tin người dùng từ cơ sở dữ liệu
-        const [user] = await connection.promise().query('SELECT * FROM user WHERE id = ?', [id]);
+        const [user] = await connection.promise().query('SELECT * FROM employees WHERE id = ?', [id]);
         if (user.length === 0) {
             return res.status(404).json({ message: 'Người dùng không tồn tại.' });
         }
@@ -502,7 +492,7 @@ const changePassword = async (req, res) => {
 
         // Mã hóa mật khẩu mới
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-        await connection.promise().query('UPDATE user SET password = ? WHERE id = ?', [hashedNewPassword, id]);
+        await connection.promise().query('UPDATE employees SET password = ? WHERE id = ?', [hashedNewPassword, id]);
 
         console.log('Đổi mật khẩu thành công cho người dùng với ID ', id);
         return res.status(200).json({ message: 'Đổi mật khẩu thành công.' });
@@ -558,7 +548,7 @@ const updateInfoMySelf = asyncHandler(async (req, res) => {
     values.push(id);
 
     // Cập nhật thông tin trong cơ sở dữ liệu
-    await connection.promise().query(`UPDATE user SET ${updates.join(', ')} WHERE id = ?`, values);
+    await connection.promise().query(`UPDATE employees SET ${updates.join(', ')} WHERE id = ?`, values);
     console.log(`Cập nhật thông tin thành công cho người dùng với ID ${id}`);
 
     return res
@@ -573,7 +563,6 @@ export default {
     createUser,
     updateUserFromAdmin,
     deleteUser,
-    searchUser,
     lockUser,
     getDetailUser,
     filterUser,
