@@ -5,6 +5,8 @@ import { verifyAccessToken, checkAdminOrStaff } from '../middlewares/verifyToken
 const router = express.Router();
 
 router.get('/day', [verifyAccessToken, checkAdminOrStaff], StatisticController.statisticDay);
+router.get('/quarter', [verifyAccessToken, checkAdminOrStaff], StatisticController.statisticQuarter);
 router.get('/month', [verifyAccessToken, checkAdminOrStaff], StatisticController.statisticMonth);
+router.get('/year', [verifyAccessToken, checkAdminOrStaff], StatisticController.statisticYear);
 
 export default router;
