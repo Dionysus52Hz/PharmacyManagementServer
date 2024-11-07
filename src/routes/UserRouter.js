@@ -4,14 +4,17 @@ import { verifyAccessToken, checkAdminOrStaff } from '../middlewares/verifyToken
 
 const router = express.Router();
 
-router.put('/updateUser/:username', [verifyAccessToken, checkAdminOrStaff], UserController.updateUser);
-router.delete('/deleteUser/:username', [verifyAccessToken, checkAdminOrStaff], UserController.deleteUser);
-router.put('/lockUser/:username', [verifyAccessToken, checkAdminOrStaff], UserController.lockUser);
+router.put('/updateUserFromAdmin/:id', [verifyAccessToken, checkAdminOrStaff], UserController.updateUserFromAdmin);
+router.delete('/deleteUser/:id', [verifyAccessToken, checkAdminOrStaff], UserController.deleteUser);
+router.put('/lockUser/:id', [verifyAccessToken, checkAdminOrStaff], UserController.lockUser);
+router.get('/getDetailUser/:id', [verifyAccessToken, checkAdminOrStaff], UserController.getDetailUser);
 
 router.post('/register', UserController.register);
 router.post('/login', UserController.login);
 router.post('/logout', UserController.logout);
 router.post('/createUser', [verifyAccessToken, checkAdminOrStaff], UserController.createUser);
-router.post('/searchUser', [verifyAccessToken, checkAdminOrStaff], UserController.searchUser);
+router.get('/filterUser', [verifyAccessToken, checkAdminOrStaff], UserController.filterUser);
+router.put('/changePassword', [verifyAccessToken], UserController.changePassword);
+router.put('/updateInfoMySelf', [verifyAccessToken], UserController.updateInfoMySelf);
 
 export default router;
