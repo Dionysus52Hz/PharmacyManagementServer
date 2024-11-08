@@ -45,48 +45,34 @@ const register = async (req, res) => {
                 .json({ message: 'Số điện thoại phải có 10 chữ số và bắt đầu bằng 09, 03, 07, 08 hoặc 05.' });
         }
 
-        // Kiểm tra người dùng đã tồn tại
-        const [existingUser] = await connection
-            .promise()
-            .query('SELECT * FROM employees WHERE username = ?', [username]);
-        if (existingUser.length > 0) {
+        // Kiểm tra username đã tồn tại
+        // const [existingUser] = await connection.query('SELECT check_if_username_exists(?) AS exists', [username]);
+        const [existingUser] = await connection.query('SELECT check_if_username_exists(?) AS `exists`', [username]);
+        if (existingUser[0].exists) {
             return res.status(400).json({ message: 'Username đã tồn tại. Hãy đăng kí username khác' });
         }
 
-        const [lastId] = await connection.promise().query('SELECT MAX(employee_id) AS maxId FROM employees');
+        // Sử dụng auto-increment cho employee_id hoặc tạo ID tùy theo yêu cầu
+        const [lastId] = await connection.query('SELECT MAX(employee_id) AS maxId FROM employees');
         const maxId = lastId[0].maxId;
-
-        // Kiểm tra nếu maxId là null và khởi tạo newId
         const newId = maxId ? `EP${String(parseInt(maxId.replace('EP', '')) + 1).padStart(2, '0')}` : 'EP01';
 
         // Mã hóa mật khẩu
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        await connection
-            .promise()
-            .query(
-                'INSERT INTO employees (employee_id, username, password, fullname, address, phoneNumber, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [
-                    newId,
-                    username,
-                    hashedPassword,
-                    fullname,
-                    address,
-                    phoneNumber,
-                    role, // Thêm role vào đây
-                ],
-            );
+        // Thêm người dùng mới vào cơ sở dữ liệu
+        await connection.query(
+            'INSERT INTO employees (employee_id, username, password, fullname, address, phoneNumber, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [newId, username, hashedPassword, fullname, address, phoneNumber, role],
+        );
 
         // Lấy thông tin người dùng mới đã đăng ký
-        const [newUser] = await connection
-            .promise()
-            .query(
-                'SELECT employee_id, username, fullname, address, phoneNumber, role, createdAt, updatedAt FROM employees WHERE username = ?',
-                [username],
-            );
+        const [newUser] = await connection.query(
+            'SELECT employee_id, username, fullname, address, phoneNumber, role, createdAt, updatedAt FROM employees WHERE username = ?',
+            [username],
+        );
 
         console.log('Đăng ký thành công:', newUser[0]);
-
         return res.status(201).json({ success: true, message: 'Đăng ký tài khoản thành công', user: newUser[0] });
     } catch (error) {
         console.error('Error in registration:', error);
