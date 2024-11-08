@@ -14,7 +14,8 @@ router.post('/login', UserController.login);
 router.post('/logout', UserController.logout);
 router.post('/createUser', [verifyAccessToken, checkAdminOrStaff], UserController.createUser);
 router.get('/filterUser', [verifyAccessToken, checkAdminOrStaff], UserController.filterUser);
-router.put('/changePassword', [verifyAccessToken], UserController.changePassword);
+router.put('/changePassword', [verifyAccessToken, checkAdminOrStaff], UserController.changePassword);
 router.put('/updateInfoMySelf', [verifyAccessToken], UserController.updateInfoMySelf);
+router.get('/getAllUsers', [verifyAccessToken, checkAdminOrStaff], UserController.getAllUsers);
 
 export default router;
