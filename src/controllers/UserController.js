@@ -26,6 +26,7 @@ const register = async (req, res) => {
     const { username, password, fullname, address, phoneNumber, role = 'staff' } = req.body;
 
     try {
+        await connection.beginTransaction();
         if (!username || !password || !fullname || !address || !phoneNumber) {
             return res.status(400).json({ message: 'Bạn cần cung cấp đầy đủ thông tin.' });
         }
@@ -65,6 +66,7 @@ const register = async (req, res) => {
             'INSERT INTO employees (employee_id, username, password, fullname, address, phoneNumber, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [newId, username, hashedPassword, fullname, address, phoneNumber, role],
         );
+        await connection.commit();
 
         // Lấy thông tin người dùng mới đã đăng ký
         const [newUser] = await connection.query(
@@ -75,6 +77,7 @@ const register = async (req, res) => {
         console.log('Đăng ký thành công:', newUser[0]);
         return res.status(201).json({ success: true, message: 'Đăng ký tài khoản thành công', user: newUser[0] });
     } catch (error) {
+        await connection.rollback();
         console.error('Error in registration:', error);
         return res.status(500).json({ message: 'Server error', error });
     }
