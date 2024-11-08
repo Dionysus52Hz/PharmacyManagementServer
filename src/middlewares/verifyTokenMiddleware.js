@@ -69,4 +69,4 @@ export const checkAdminOrStaff = asyncHandler(async (req, res, next) => {
     }
 });
 
-// export default { verifyAccessToken, checkIsStaff, checkIsAdmin, checkAdminOrStaff };
+ export default { verifyAccessToken, checkIsStaff, checkIsAdmin, checkAdminOrStaff };

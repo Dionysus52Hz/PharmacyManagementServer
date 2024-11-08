@@ -1,13 +1,13 @@
 
-const express = require('express');
-const { getDeliveryNotes, getDeliveryNoteById, createDeliveryNote, deleteDeliveryNote } = require('../controllers/DeliveryNoteController');
-const verifyToken = require('../middlewares/verifyTokenMiddleware');
+import express from 'express';
+import deliveryNoteController from '../controllers/DeliveryNoteController.js'
+import verifyToken from '../middlewares/verifyTokenMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', verifyToken, getDeliveryNotes);
-router.get('/:delivery_note_id', verifyToken, getDeliveryNoteById);
-router.post('/', verifyToken, createDeliveryNote);
-router.delete('/:delivery_note_id', verifyToken, deleteDeliveryNote);
+router.get('/', deliveryNoteController.getDeliveryNotes);
+// router.get('/:delivery_note_id', verifyToken.verifyAccessToken, getDeliveryNoteById);
+// router.post('/', verifyToken.verifyAccessToken, createDeliveryNote);
+// router.delete('/:delivery_note_id', verifyToken.verifyAccessToken, deleteDeliveryNote);
 
 export default router;
