@@ -607,6 +607,42 @@ const updateInfoMySelf = async (req, res) => {
     }
 };
 
+const getAllUsers = asyncHandler(async (req, res) => {
+    try {
+        // Lấy tất cả người dùng từ bảng employees
+        const [users] = await connection.query('SELECT * FROM employees');
+
+        if (users.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không có người dùng nào trong hệ thống',
+            });
+        }
+
+        // Tạo mảng userInfo chứa thông tin cần thiết của mỗi người dùng
+        const userInfo = users.map((user) => ({
+            id: user.employee_id,
+            username: user.username,
+            fullname: user.fullname,
+            address: user.address,
+            phoneNumber: user.phoneNumber,
+            role: user.role,
+            isLocked: user.isLocked, // Nếu cần thêm thông tin này
+        }));
+
+        return res.status(200).json({
+            success: true,
+            users: userInfo,
+        });
+    } catch (error) {
+        console.error('Error fetching all users:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi khi lấy danh sách người dùng',
+        });
+    }
+});
+
 export default {
     register,
     login,
@@ -619,4 +655,5 @@ export default {
     filterUser,
     changePassword,
     updateInfoMySelf,
+    getAllUsers,
 };
