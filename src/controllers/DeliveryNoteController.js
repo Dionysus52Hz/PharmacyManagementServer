@@ -4,13 +4,10 @@ import connection from '../config/database.js';
 // Lấy danh sách tất cả Delivery Notes
 const getDeliveryNotes = async (req, res) => {
     try {
-         console.log(123)
-        const [rows] = await connection.promise().query('SELECT * FROM Medicine');
-        console.log(rows)
+        const [rows] = await connection.promise().query('SELECT * FROM DeliveryNotes ');
         res.json(rows);
     } catch (error) {
 
-        console.log(error)
 
         res.status(500).send('Error fetching delivery notes');
     }
