@@ -11,17 +11,24 @@ const getAllReceivedNoteDetails = async (req, res) => {
 
 const getReceivedNoteDetailById = async (req, res) => {
     try {
-        const { received_note_id, medicine_id } = req.params;
-        const [rows] = await connection.promise().query(
-            'SELECT * FROM ReceivedNoteDetails WHERE received_note_id = ? AND medicine_id = ?',
-            [received_note_id, medicine_id]
-        );
-        if (rows.length === 0) {
-            return res.status(404).json({ message: 'Chi tiết không tồn tại' });
+        const { received_note_id } = req.params;
+
+        // Truy vấn tất cả các bản ghi cùng received_note_id
+        const query = `
+            SELECT medicine_id, quantity, price FROM ReceivedNoteDetails
+            WHERE received_note_id = ?
+        `;
+        const [details] = await connection.promise().execute(query, [received_note_id]);
+
+        if (details.length === 0) {
+            return res.status(404).json({ message: 'No details found for this received note ID' });
         }
-        res.status(200).json(rows[0]);
+
+        // Trả về liệt kê của các received_note có cùng received_note_id
+        res.json({ received_note_id, details });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
