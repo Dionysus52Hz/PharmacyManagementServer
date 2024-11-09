@@ -4,9 +4,9 @@ import deliveryNoteDetailsController from '../controllers/deliveryNoteDetailsCon
 const router = express.Router();
 
 router.get('/', deliveryNoteDetailsController.getAllDeliveryNoteDetails);
-router.get('/:id', deliveryNoteDetailsController.getDeliveryNoteDetailById);
+router.get('/:delivery_note_id', deliveryNoteDetailsController.getDeliveryNoteDetailById);
 router.post('/', deliveryNoteDetailsController.createDeliveryNoteDetail);
-router.put('/:id', deliveryNoteDetailsController.updateDeliveryNoteDetail);
-router.delete('/:id', deliveryNoteDetailsController.deleteDeliveryNoteDetail);
+router.put('/:delivery_note_id', deliveryNoteDetailsController.updateDeliveryNoteDetail);
+router.delete('/:delivery_note_id', deliveryNoteDetailsController.deleteDeliveryNoteDetail);
 
 export default router;
