@@ -106,7 +106,7 @@ const statisticQuarter = asyncHandler(async (req, res) => {
 
     // Kiểm tra nếu quarter hoặc year không được cung cấp
     if (!quarter || !year) {
-        return res.status(400).json({ error: 'quarter and year are required' });
+        return res.status(400).json({ error: 'Bạn phải nhập quý và năm' });
     }
 
     // Phiếu nhập
@@ -129,11 +129,17 @@ const statisticQuarter = asyncHandler(async (req, res) => {
 
     const [resultsInput] = await connection.query(queryListInput, [quarter, year]);
 
-    const maxPriceRowInput = resultsInput.reduce((max, row) => (row.price > max.price ? row : max), resultsInput[0]);
-    const minPriceRowInput = resultsInput.reduce((min, row) => (row.price < min.price ? row : min), resultsInput[0]);
+    const maxPriceRowInput =
+        resultsInput.length > 0
+            ? resultsInput.reduce((max, row) => (row.price > max.price ? row : max), resultsInput[0])
+            : null;
+    const minPriceRowInput =
+        resultsInput.length > 0
+            ? resultsInput.reduce((min, row) => (row.price < min.price ? row : min), resultsInput[0])
+            : null;
 
     const totalPriceInput = resultsInput.reduce((sum, row) => sum + row.price, 0);
-    const avgPriceInput = totalPriceInput / resultsInput.length;
+    const avgPriceInput = resultsInput.length > 0 ? totalPriceInput / resultsInput.length : 0;
 
     // Phiếu chi
     const queryListOutput = `
@@ -155,11 +161,17 @@ const statisticQuarter = asyncHandler(async (req, res) => {
 
     const [resultsOutput] = await connection.query(queryListOutput, [quarter, year]);
 
-    const maxPriceRowOutput = resultsOutput.reduce((max, row) => (row.price > max.price ? row : max), resultsOutput[0]);
-    const minPriceRowOutput = resultsOutput.reduce((min, row) => (row.price < min.price ? row : min), resultsOutput[0]);
+    const maxPriceRowOutput =
+        resultsOutput.length > 0
+            ? resultsOutput.reduce((max, row) => (row.price > max.price ? row : max), resultsOutput[0])
+            : null;
+    const minPriceRowOutput =
+        resultsOutput.length > 0
+            ? resultsOutput.reduce((min, row) => (row.price < min.price ? row : min), resultsOutput[0])
+            : null;
 
     const totalPriceOutput = resultsOutput.reduce((sum, row) => sum + row.price, 0);
-    const avgPriceOutput = totalPriceOutput / resultsOutput.length;
+    const avgPriceOutput = resultsOutput.length > 0 ? totalPriceOutput / resultsOutput.length : 0;
 
     const totalProfit = totalPriceInput - totalPriceOutput;
 
@@ -167,12 +179,12 @@ const statisticQuarter = asyncHandler(async (req, res) => {
     return res.status(200).json({
         success: true,
         resultsInput,
-        maxPriceRowInput,
-        minPriceRowInput,
+        maxPriceRowInput: maxPriceRowInput || { price: 0 },
+        minPriceRowInput: minPriceRowInput || { price: 0 },
         avgPriceInput,
         resultsOutput,
-        maxPriceRowOutput,
-        minPriceRowOutput,
+        maxPriceRowOutput: maxPriceRowOutput || { price: 0 },
+        minPriceRowOutput: minPriceRowOutput || { price: 0 },
         avgPriceOutput,
         totalPriceInput,
         totalPriceOutput,
