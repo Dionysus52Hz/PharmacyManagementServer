@@ -4,37 +4,95 @@ import connection from '../config/database.js';
 // Lấy danh sách tất cả các phiếu nhập
 const getReceivedNotes = async (req, res) => {
     try {
+        // Start a transaction
+        await connection.beginTransaction();
+
+        // Execute the SELECT query
         const [rows] = await connection.query('SELECT * FROM ReceivedNotes');
+
+        // Commit the transaction (even though no changes are made, it finalizes the read operation)
+        await connection.commit();
+
+        // Send the result
         res.json(rows);
     } catch (error) {
+        // Rollback the transaction if there's an error
+        if (connection) await connection.rollback();
         res.status(500).send('Error fetching received notes');
     }
 };
 
-// Lấy chi tiết một phiếu nhập theo ID
+// Lấy danh sách phiếu nhập theo Id
 const getReceivedNoteById = async (req, res) => {
     const { received_note_id } = req.params;
     try {
+        // Start a transaction
+        await connection.beginTransaction();
+
+        // Execute the SELECT query within the transaction
         const [rows] = await connection.query('SELECT * FROM ReceivedNotes WHERE received_note_id = ?', [received_note_id]);
+
         if (rows.length === 0) {
+            await connection.rollback(); // Rollback in case of not found to keep transaction clean
             return res.status(404).send('Received note not found');
         }
+
+        // Commit the transaction after a successful fetch
+        await connection.commit();
+
+        // Send the result
         res.json(rows[0]);
     } catch (error) {
+        // Rollback the transaction if there's an error
+        if (connection) await connection.rollback();
         res.status(500).send('Error fetching received note');
     }
 };
 
-// Tạo mới một phiếu nhập
 const createReceivedNote = async (req, res) => {
     const { employee_id, supplier_id, received_date } = req.body;
     try {
-        const [result] = await connection.query(
-            'INSERT INTO ReceivedNotes (employee_id, supplier_id, received_date) VALUES (?, ?, ?)',
-            [employee_id, supplier_id, received_date]
+        // Start a new transaction
+        await connection.beginTransaction();
+
+        // Get the last received_note_id to generate the new one
+        let newId;
+        let uniqueIdFound = false;
+        let count = 1;
+
+        // Loop until a unique received_note_id is found
+        while (!uniqueIdFound) {
+            // Generate the new received_note_id
+            newId = `RN${count.toString().padStart(3, '0')}`;
+
+            // Check if this newId already exists in the database
+            const [existingNote] = await connection.query(
+                'SELECT received_note_id FROM ReceivedNotes WHERE received_note_id = ?',
+                [newId]
+            );
+
+            // If the ID does not exist, it's unique
+            if (existingNote.length === 0) {
+                uniqueIdFound = true;
+            } else {
+                // If the ID exists, increment the count and try again
+                count++;
+            }
+        }
+
+        // Insert the new received note into the database
+        await connection.query(
+            'INSERT INTO ReceivedNotes (received_note_id, employee_id, supplier_id, received_date) VALUES (?, ?, ?, ?)',
+            [newId, employee_id, supplier_id, received_date]
         );
-        res.status(201).json({ received_note_id: result.insertId });
+
+        // Commit the transaction
+        await connection.commit();
+        res.status(201).json({ received_note_id: newId });
+
     } catch (error) {
+        // If there's an error, rollback the transaction
+        if (connection) await connection.rollback();
         res.status(500).send('Error creating received note');
     }
 };
@@ -44,15 +102,28 @@ const updateReceivedNote = async (req, res) => {
     const { received_note_id } = req.params;
     const { employee_id, supplier_id, received_date } = req.body;
     try {
+        // Start a transaction
+        await connection.beginTransaction();
+
+        // Perform the update operation
         const [result] = await connection.query(
             'UPDATE ReceivedNotes SET employee_id = ?, supplier_id = ?, received_date = ? WHERE received_note_id = ?',
             [employee_id, supplier_id, received_date, received_note_id]
         );
+
         if (result.affectedRows === 0) {
+            // Rollback transaction if no rows were affected
+            await connection.rollback();
             return res.status(404).send('Received note not found');
         }
+
+        // Commit the transaction if update is successful
+        await connection.commit();
         res.status(200).send('Received note updated successfully');
     } catch (error) {
+        // Rollback transaction in case of an error
+        if (connection) await connection.rollback();
+
         res.status(500).send('Error updating received note');
     }
 };
@@ -61,12 +132,27 @@ const updateReceivedNote = async (req, res) => {
 const deleteReceivedNote = async (req, res) => {
     const { received_note_id } = req.params;
     try {
-        const [result] = await connection.query('DELETE FROM ReceivedNotes WHERE received_note_id = ?', [received_note_id]);
+        // Start a transaction
+        await connection.beginTransaction();
+
+        // Perform the delete operation
+        const [result] = await connection.query(
+            'DELETE FROM ReceivedNotes WHERE received_note_id = ?',
+            [received_note_id]
+        );
+
         if (result.affectedRows === 0) {
+            // Rollback transaction if no rows were affected
+            await connection.rollback();
             return res.status(404).send('Received note not found');
         }
+
+        // Commit the transaction if delete is successful
+        await connection.commit();
         res.status(200).send('Received note deleted successfully');
     } catch (error) {
+        // Rollback transaction in case of an error
+        if (connection) await connection.rollback();
         res.status(500).send('Error deleting received note');
     }
 };

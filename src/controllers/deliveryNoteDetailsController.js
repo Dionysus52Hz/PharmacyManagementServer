@@ -74,17 +74,6 @@ const createDeliveryNoteDetail = async (req, res) => {
     }
 };
 
-
-// const updateDeliveryNoteDetail = async (req, res) => {
-//     const { id } = req.params;
-//     const { medicine_id, quantity, price } = req.body;
-//     try {
-//         await connection.query('UPDATE DeliveryNoteDetails SET medicine_id = ?, quantity = ?, price = ? WHERE delivery_note_id = ?', [medicine_id, quantity, price, id]);
-//         res.status(200).json({ message: 'Delivery Note Detail updated' });
-//     } catch (error) {
-//         res.status(500).json({ message: error.message });
-//     }
-// };
 const updateDeliveryNoteDetail = async (req, res) => {
     const { delivery_note_id, medicine_id } = req.params;
     const { quantity, price } = req.body;
@@ -112,24 +101,9 @@ const updateDeliveryNoteDetail = async (req, res) => {
     } catch (error) {
         // Rollback the transaction if there's an error
         if (connection) await connection.rollback();
-        console.error('MySQL Error: ', error);
-
         res.status(500).json({ message: 'Error updating delivery note detail' });
     }
 };
-
-// const deleteDeliveryNoteDetail = async (req, res) => {
-//     try {
-//         const { delivery_note_id, medicine_id } = req.params;
-//         await connection.query(
-//             'DELETE FROM DeliveryNoteDetails WHERE delivery_note_id = ? AND medicine_id = ?',
-//             [delivery_note_id, medicine_id]
-//         );
-//         res.status(200).json({ message: 'Delivery Note Detail deleted' });
-//     } catch (error) {
-//         res.status(500).json({ message: error.message });
-//     }
-// };
 
 const deleteDeliveryNoteDetail = async (req, res) => {
     const { delivery_note_id, medicine_id } = req.params;
