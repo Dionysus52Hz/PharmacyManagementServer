@@ -46,19 +46,6 @@ export const checkIsAdmin = asyncHandler(async (req, res, next) => {
 });
 
 export const checkAdminOrStaff = asyncHandler(async (req, res, next) => {
-    // checkIsAdmin((req, res), (err) => {
-    //     if (err) {
-    //         checkIsStaff(req, res, (err) => {
-    //             if (err) {
-    //                 return res.status(403).json({ message: 'Access denied staff' });
-    //             } else {
-    //                 next();
-    //             }
-    //         });
-    //     } else {
-    //         next();
-    //     }
-    // });
     const { role } = req.user;
     console.log('req.user: ', req.user);
     if (role === 'admin' || role === 'staff') {
