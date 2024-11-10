@@ -2,7 +2,7 @@ import connection from '../config/database.js';
 
 const getAllReceivedNoteDetails = async (req, res) => {
     try {
-        const [rows] = await connection.promise().query('SELECT * FROM ReceivedNoteDetails');
+        const [rows] = await connection.query('SELECT * FROM ReceivedNoteDetails');
         res.status(200).json(rows);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -18,7 +18,7 @@ const getReceivedNoteDetailById = async (req, res) => {
             SELECT medicine_id, quantity, price FROM ReceivedNoteDetails
             WHERE received_note_id = ?
         `;
-        const [details] = await connection.promise().execute(query, [received_note_id]);
+        const [details] = await connection.execute(query, [received_note_id]);
 
         if (details.length === 0) {
             return res.status(404).json({ message: 'No details found for this received note ID' });
@@ -35,7 +35,7 @@ const getReceivedNoteDetailById = async (req, res) => {
 const createReceivedNoteDetail = async (req, res) => {
     try {
         const { received_note_id, medicine_id, quantity, price } = req.body;
-        await connection.promise().query(
+        await connection.query(
             'INSERT INTO ReceivedNoteDetails (received_note_id, medicine_id, quantity, price) VALUES (?, ?, ?, ?)',
             [received_note_id, medicine_id, quantity, price]
         );
@@ -49,7 +49,7 @@ const updateReceivedNoteDetail = async (req, res) => {
     try {
         const { received_note_id, medicine_id } = req.params;
         const { quantity, price } = req.body;
-        const [result] = await connection.promise().query(
+        const [result] = await connection.query(
             'UPDATE ReceivedNoteDetails SET quantity = ?, price = ? WHERE received_note_id = ? AND medicine_id = ?',
             [quantity, price, received_note_id, medicine_id]
         );
@@ -65,7 +65,7 @@ const updateReceivedNoteDetail = async (req, res) => {
 const deleteReceivedNoteDetail = async (req, res) => {
     try {
         const { received_note_id, medicine_id } = req.params;
-        const [result] = await connection.promise().query(
+        const [result] = await connection.query(
             'DELETE FROM ReceivedNoteDetails WHERE received_note_id = ? AND medicine_id = ?',
             [received_note_id, medicine_id]
         );

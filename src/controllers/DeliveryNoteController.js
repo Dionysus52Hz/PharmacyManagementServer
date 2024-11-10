@@ -116,7 +116,6 @@ const deleteDeliveryNote = async (req, res) => {
     } catch (error) {
         // Rollback the transaction in case of any error
         if (connection) await connection.rollback();
-
         res.status(500).send('Error deleting delivery note');
     }
 };

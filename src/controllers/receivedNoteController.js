@@ -4,7 +4,7 @@ import connection from '../config/database.js';
 // Lấy danh sách tất cả các phiếu nhập
 const getReceivedNotes = async (req, res) => {
     try {
-        const [rows] = await connection.promise().query('SELECT * FROM ReceivedNotes');
+        const [rows] = await connection.query('SELECT * FROM ReceivedNotes');
         res.json(rows);
     } catch (error) {
         res.status(500).send('Error fetching received notes');
@@ -15,7 +15,7 @@ const getReceivedNotes = async (req, res) => {
 const getReceivedNoteById = async (req, res) => {
     const { received_note_id } = req.params;
     try {
-        const [rows] = await connection.promise().query('SELECT * FROM ReceivedNotes WHERE received_note_id = ?', [received_note_id]);
+        const [rows] = await connection.query('SELECT * FROM ReceivedNotes WHERE received_note_id = ?', [received_note_id]);
         if (rows.length === 0) {
             return res.status(404).send('Received note not found');
         }
@@ -29,7 +29,7 @@ const getReceivedNoteById = async (req, res) => {
 const createReceivedNote = async (req, res) => {
     const { employee_id, supplier_id, received_date } = req.body;
     try {
-        const [result] = await connection.promise().query(
+        const [result] = await connection.query(
             'INSERT INTO ReceivedNotes (employee_id, supplier_id, received_date) VALUES (?, ?, ?)',
             [employee_id, supplier_id, received_date]
         );
@@ -44,7 +44,7 @@ const updateReceivedNote = async (req, res) => {
     const { received_note_id } = req.params;
     const { employee_id, supplier_id, received_date } = req.body;
     try {
-        const [result] = await connection.promise().query(
+        const [result] = await connection.query(
             'UPDATE ReceivedNotes SET employee_id = ?, supplier_id = ?, received_date = ? WHERE received_note_id = ?',
             [employee_id, supplier_id, received_date, received_note_id]
         );
@@ -61,7 +61,7 @@ const updateReceivedNote = async (req, res) => {
 const deleteReceivedNote = async (req, res) => {
     const { received_note_id } = req.params;
     try {
-        const [result] = await connection.promise().query('DELETE FROM ReceivedNotes WHERE received_note_id = ?', [received_note_id]);
+        const [result] = await connection.query('DELETE FROM ReceivedNotes WHERE received_note_id = ?', [received_note_id]);
         if (result.affectedRows === 0) {
             return res.status(404).send('Received note not found');
         }
