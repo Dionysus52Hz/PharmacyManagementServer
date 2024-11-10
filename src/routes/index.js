@@ -4,8 +4,6 @@ import receivedNoteRoutes from './receivedNoteRoutes.js';
 import receivedNoteDetailsRoutes from './ReceivedNoteDetailsRoutes.js';
 import deliveryNoteDetailsRoutes from './deliveryNoteDetailsRoutes.js';
 import userRouter from './UserRouter.js';
-
-const express = require('express');
 import statisticRouter from './StatisticRouter.js';
 
 const route = (app) => {
@@ -17,6 +15,5 @@ const route = (app) => {
     app.use('/api', receivedNoteDetailsRoutes);
     app.use('/api/delivery-note-details', deliveryNoteDetailsRoutes);
 };
-
 
 export default route;

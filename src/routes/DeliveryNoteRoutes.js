@@ -6,8 +6,8 @@ import verifyToken from '../middlewares/verifyTokenMiddleware.js';
 const router = express.Router();
 
 router.get('/', deliveryNoteController.getDeliveryNotes);
-// router.get('/:delivery_note_id', deliveryNoteController.getDeliveryNoteById);
-// router.post('/', verifyToken.verifyAccessToken, createDeliveryNote);
-// router.delete('/:delivery_note_id', verifyToken.verifyAccessToken, deleteDeliveryNote);
+router.get('/:delivery_note_id', deliveryNoteController.getDeliveryNoteById);
+router.post('/', deliveryNoteController.createDeliveryNote);
+router.delete('/:delivery_note_id', deliveryNoteController.deleteDeliveryNote);
 
 export default router;

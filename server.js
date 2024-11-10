@@ -14,21 +14,7 @@ const START_SERVER = () => {
     app.use(express.urlencoded({ extended: true }));
     app.use(cookieParser());
 
-<<<<<<< HEAD
     app.listen(process.env.APP_PORT, process.env.APP_HOST, async () => {
-=======
-    // app.listen(process.env.APP_PORT, process.env.APP_HOST, () => {
-    //     console.log(`Pharamacy Server is running at http://${process.env.APP_HOST}:${process.env.APP_PORT}/`);
-    //     connection.connect((err) => {
-    //         if (err) {
-    //             console.error('Error connecting to the database:', err);
-    //             process.exit(1);
-    //         }
-    //         console.log('Database connected');
-    //     });
-    // });
-    app.listen(process.env.APP_PORT, process.env.APP_HOST, () => {
->>>>>>> 2f6d4d1085de4557def25fba539d1ba30216112d
         console.log(`Pharamacy Server is running at http://${process.env.APP_HOST}:${process.env.APP_PORT}/`);
         console.log('Database connected');
     });

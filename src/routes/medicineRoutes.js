@@ -5,7 +5,7 @@ import verifyToken from '../middlewares/verifyTokenMiddleware.js';
 
 const router = express.Router();
 
-router.get('/',medicineController.getMedicines);
+router.get('/', medicineController.getMedicines);
 router.get('/:medicine_id', medicineController.getMedicineById);
 router.post('/', medicineController.createMedicine);
 router.put('/:medicine_id', medicineController.updateMedicine);
