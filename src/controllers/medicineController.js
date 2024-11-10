@@ -38,13 +38,13 @@ const getMedicineById = async (req, res) => {
 
 // Tạo mới một loại thuốc
 const createMedicine = async (req, res) => {
-    const { medicine_id, name, manufacturer_id, supplier_id, effects, category_id } = req.body;
+    const { medicine_id, name, manufacturer_id, supplier_id, effects, category_id, price } = req.body;
     try {
         await connection.beginTransaction();
 
         const [result] = await connection.query(
-            'INSERT INTO Medicine (medicine_id, name, manufacturer_id, supplier_id, effects, category_id) VALUES (?, ?, ?, ?, ?, ?)',
-            [medicine_id, name, manufacturer_id, supplier_id, effects, category_id]
+            'INSERT INTO Medicine (medicine_id, name, manufacturer_id, supplier_id, effects, category_id, price) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [medicine_id, name, manufacturer_id, supplier_id, effects, category_id, price]
         );
 
         await connection.commit();
@@ -60,13 +60,13 @@ const createMedicine = async (req, res) => {
 // Cập nhật thông tin một loại thuốc
 const updateMedicine = async (req, res) => {
     const { medicine_id } = req.params;
-    const { name, manufacturer_id, supplier_id, effects, category_id } = req.body;
+    const { name, manufacturer_id, supplier_id, effects, category_id, price } = req.body;
     try {
         await connection.beginTransaction();
 
         const [result] = await connection.query(
-            'UPDATE Medicine SET name = ?, manufacturer_id = ?, supplier_id = ?, effects = ?, category_id = ? WHERE medicine_id = ?',
-            [name, manufacturer_id, supplier_id, effects, category_id, medicine_id]
+            'UPDATE Medicine SET name = ?, manufacturer_id = ?, supplier_id = ?, effects = ?, category_id = ?, price = ? WHERE medicine_id = ?',
+            [name, manufacturer_id, supplier_id, effects, category_id, price, medicine_id]
         );
 
         if (result.affectedRows === 0) {
