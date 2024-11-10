@@ -12,7 +12,7 @@ const route = (app) => {
     app.use('/api/delivery-notes', deliveryNoteRoutes);
     app.use('/api/medicines', medicineRoutes);
     app.use('/api/receivednotes', receivedNoteRoutes);
-    app.use('/api', receivedNoteDetailsRoutes);
+    app.use('/api/received_note_details', receivedNoteDetailsRoutes);
     app.use('/api/delivery-note-details', deliveryNoteDetailsRoutes);
 };
 
