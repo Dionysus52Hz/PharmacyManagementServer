@@ -145,9 +145,9 @@ const logout = asyncHandler(async (req, res) => {
     const cookie = req.cookies;
 
     // Check if the refreshToken exists in cookies
-    if (!cookie || !cookie.refreshToken) {
-        return res.status(400).json({ success: false, message: 'Not found refresh token in cookies' });
-    }
+    // if (!cookie || !cookie.refreshToken) {
+    //     return res.status(400).json({ success: false, message: 'Not found refresh token in cookies' });
+    // }
 
     // Delete refreshToken from the database
     // const [result] = await connection
