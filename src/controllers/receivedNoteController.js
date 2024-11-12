@@ -51,48 +51,15 @@ const getReceivedNoteById = async (req, res) => {
 
 const createReceivedNote = async (req, res) => {
     const { employee_id, supplier_id, received_date } = req.body;
+
     try {
-        // Start a new transaction
-        await connection.beginTransaction();
-
-        // Get the last received_note_id to generate the new one
-        let newId;
-        let uniqueIdFound = false;
-        let count = 1;
-
-        // Loop until a unique received_note_id is found
-        while (!uniqueIdFound) {
-            // Generate the new received_note_id
-            newId = `RN${count.toString().padStart(3, '0')}`;
-
-            // Check if this newId already exists in the database
-            const [existingNote] = await connection.query(
-                'SELECT received_note_id FROM ReceivedNotes WHERE received_note_id = ?',
-                [newId]
-            );
-
-            // If the ID does not exist, it's unique
-            if (existingNote.length === 0) {
-                uniqueIdFound = true;
-            } else {
-                // If the ID exists, increment the count and try again
-                count++;
-            }
-        }
-
-        // Insert the new received note into the database
-        await connection.query(
-            'INSERT INTO ReceivedNotes (received_note_id, employee_id, supplier_id, received_date) VALUES (?, ?, ?, ?)',
-            [newId, employee_id, supplier_id, received_date]
+        // Gọi PROCDURE để tạo phiếu nhập kho
+        const [result] = await connection.query(
+            'CALL createReceivedNote(?, ?, ?)',
+            [employee_id, supplier_id, received_date]
         );
-
-        // Commit the transaction
-        await connection.commit();
-        res.status(201).json({ received_note_id: newId });
-
+        res.status(201).json({ message: 'Received note created successfully' });
     } catch (error) {
-        // If there's an error, rollback the transaction
-        if (connection) await connection.rollback();
         res.status(500).send('Error creating received note');
     }
 };
