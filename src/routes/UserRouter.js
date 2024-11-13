@@ -43,7 +43,7 @@ router.get(
 );
 router.put(
    '/changePassword',
-   [verifyAccessToken, checkAdminOrStaff],
+   [verifyAccessToken],
    UserController.changePassword
 );
 router.put(

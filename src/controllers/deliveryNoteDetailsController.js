@@ -25,7 +25,6 @@ const getAllDeliveryNoteDetails = async (req, res) => {
 const getDeliveryNoteDetailById = async (req, res) => {
    try {
       const { delivery_note_id } = req.params;
-
       // Start the transaction
       await connection.beginTransaction();
 
@@ -34,7 +33,6 @@ const getDeliveryNoteDetailById = async (req, res) => {
             SELECT delivery_note_id, dnd.medicine_id, m.name as medicine_name, dnd.quantity, dnd.price FROM DeliveryNoteDetails dnd JOIN Medicine m ON dnd.medicine_id = m.medicine_id WHERE delivery_note_id = ?;
         `;
       const [details] = await connection.query(query, [delivery_note_id]);
-
       if (details.length === 0) {
          return res
             .status(404)

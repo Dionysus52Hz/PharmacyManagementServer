@@ -35,8 +35,6 @@ const getReceivedNoteDetailById = async (req, res) => {
       const [details] = await connection.query(query, [received_note_id]);
 
       if (details.length === 0) {
-         // If no records found, rollback and return a 404 response
-         await connection.rollback();
          return res
             .status(404)
             .json({ message: 'No details found for this received note ID' });

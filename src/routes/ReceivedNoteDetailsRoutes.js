@@ -17,5 +17,13 @@ router.delete(
    '/:received_note_id/:medicine_id',
    receivedNoteDetailsController.deleteReceivedNoteDetail
 );
+router.put(
+   '/:received_note_id/:medicine_id',
+   receivedNoteDetailsController.updateReceivedNoteDetail
+);
+router.delete(
+   '/:received_note_id/:medicine_id',
+   receivedNoteDetailsController.deleteReceivedNoteDetail
+);
 
 export default router;
