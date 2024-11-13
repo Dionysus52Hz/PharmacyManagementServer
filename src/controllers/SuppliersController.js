@@ -209,163 +209,136 @@ const logout = asyncHandler(async (req, res) => {
    });
 });
 
-const createUser = asyncHandler(async (req, res) => {
-   const { username, password, fullname, address, phoneNumber } = req.body;
-   const currentRoleUser = req.user.role;
+const getAllSuppliers = async (req, res) => {
+   try {
+      const currentUserRole = req.user.role;
+      console.log(currentUserRole);
 
-   // Kiểm tra xem người dùng hiện tại có phải là admin
-   if (currentRoleUser !== 'admin') {
-      return res.status(403).json({
-         success: false,
-         message: 'Bạn không có quyền tạo người dùng mới.',
+      // Kiểm tra quyền admin
+      if (currentUserRole !== 'admin' && currentUserRole !== 'staff') {
+         return res.status(403).json({
+            success: false,
+            message: 'Bạn không có quyền xem thông tin này.',
+         });
+      }
+      await connection.beginTransaction();
+      const [rows] = await connection.query('SELECT * FROM Suppliers');
+
+      // Commit the transaction (even though no changes are made, it finalizes the read operation)
+      await connection.commit();
+
+      // Send the result
+      res.status(200).json({
+         success: true,
+         data: rows,
       });
+   } catch (error) {
+      // Rollback the transaction if there's an error
+      if (connection) await connection.rollback();
+      res.status(500).send('Error fetching suppliers');
    }
+};
 
-   // Kiểm tra dữ liệu đầu vào
-   if (!username) {
-      return res
-         .status(400)
-         .json({ success: false, message: 'Vui lòng cung cấp username' });
-   }
+const createSupplier = asyncHandler(async (req, res) => {
+   try {
+      const { supplier_id, name, address, representative } = req.body;
+      const currentRoleUser = req.user.role;
 
-   const finalPassword = password || '123456';
+      await connection.beginTransaction();
+      if (currentRoleUser !== 'admin' && currentRoleUser !== 'staff') {
+         return res.status(403).json({
+            success: false,
+            message: 'Bạn không có quyền tạo nhà cung cấp mới.',
+         });
+      }
 
-   // Kiểm tra số điện thoại
-   if (phoneNumber && !/^(09|03|07|08|05)\d{8}$/.test(phoneNumber)) {
-      return res.status(400).json({
-         message:
-            'Số điện thoại phải có 10 chữ số và bắt đầu bằng 09, 03, 07, 08 hoặc 05.',
+      // Kiểm tra dữ liệu đầu vào
+      if (!supplier_id || !name || !address || !representative) {
+         return res.status(400).json({
+            success: false,
+            message: 'Vui lòng cung cấp đầy đủ thông tin',
+         });
+      }
+
+      await connection.query(
+         'INSERT INTO Suppliers (supplier_id, name, address, representative) VALUES (?, ?, ?, ?)',
+         [supplier_id, name, address, representative]
+      );
+
+      // Lấy thông tin người dùng mới
+      const [newSupplier] = await connection.query(
+         'SELECT supplier_id, name, address, representative FROM Suppliers WHERE supplier_id = ?',
+         [supplier_id]
+      );
+
+      await connection.commit();
+
+      res.status(201).json({
+         success: true,
+         message: 'Tạo nhà cung cấp mới thành công',
+         newSupplier,
       });
+   } catch (error) {
+      if (connection) await connection.rollback();
+
+      res.status(500).json(error);
    }
-
-   const [newIdResult] = await connection.query(
-      'SELECT GenerateEmployeeId() AS newId'
-   );
-   const newId = newIdResult[0].newId;
-
-   // Kiểm tra người dùng đã tồn tại
-   const [existingUser] = await connection.query(
-      'SELECT * FROM employees WHERE username = ?',
-      [username]
-   );
-   if (existingUser.length > 0) {
-      return res.status(400).json({
-         success: false,
-         message: 'Username đã tồn tại. Hãy đăng kí username khác',
-      });
-   }
-
-   // Mã hóa mật khẩu
-   const hashedPassword = await bcrypt.hash(finalPassword, 10);
-
-   // Gọi stored procedure CreateEmployee để thêm người dùng mới
-   await connection.query('CALL CreateEmployee(?, ?, ?, ?, ?, ?, ?)', [
-      newId,
-      username,
-      hashedPassword,
-      fullname,
-      address,
-      phoneNumber,
-      'staff',
-   ]);
-   // Lấy thông tin người dùng mới
-   const [newUser] = await connection.query(
-      'SELECT employee_id, username, fullname, address, phoneNumber, role FROM employees WHERE username = ?',
-      [username]
-   );
-
-   console.log('Đăng ký thành công:', newUser[0]);
-
-   res.status(201).json({
-      success: true,
-      message: 'Tạo người dùng thành công',
-      newUser,
-   });
 });
 
-const updateUserFromAdmin = asyncHandler(async (req, res) => {
-   const { id } = req.params; // ID to update, from URL
-   const { fullname, address, phoneNumber } = req.body; // Updated information
+const updateSupplier = asyncHandler(async (req, res) => {
+   const { id } = req.params;
+
+   const { supplier_id, name, address, representative } = req.body;
+
    const currentUserRole = req.user.role;
    // Requesting user's role from JWT or session
    const currentUserId = req.user.id;
 
    // Kiểm tra quyền admin
-   if (currentUserRole !== 'admin') {
+   if (currentUserRole !== 'admin' && currentUserRole !== 'staff') {
       return res.status(403).json({
          success: false,
-         message: 'Bạn không có quyền chỉnh sửa thông tin người dùng.',
+         message: 'Bạn không có quyền chỉnh sửa thông tin nhà cung cấp.',
       });
    }
 
-   // Kiểm tra ít nhất một trường không để trống
-   if (!fullname && !address && !phoneNumber) {
+   if (!supplier_id || !name || !address || !representative) {
       return res.status(400).json({
          success: false,
-         message:
-            'Bạn cần nhập ít nhất một trong các thông tin: họ tên, địa chỉ, hoặc số điện thoại để chỉnh sửa',
-      });
-   }
-
-   if (phoneNumber && !/^(09|03|07|08|05)\d{8}$/.test(phoneNumber)) {
-      return res.status(400).json({
-         message:
-            'Số điện thoại phải có 10 chữ số và bắt đầu bằng 09, 03, 07, 08 hoặc 05.',
+         message: 'Vui lòng cung cấp đầy đủ thông tin',
       });
    }
 
    await connection.beginTransaction();
    try {
-      // Kiểm tra người dùng cần cập nhật có tồn tại không
-      const [updatedUser] = await connection.query(
-         'SELECT * FROM employees WHERE employee_id = ?',
+      const [updatedSupplier] = await connection.query(
+         'SELECT * FROM Suppliers WHERE supplier_id = ?',
          [id]
       );
-      if (updatedUser.length === 0) {
+      if (updatedSupplier.length === 0) {
          await connection.rollback();
          return res
             .status(404)
-            .json({ success: false, message: 'Người dùng không tồn tại' });
+            .json({ success: false, message: 'Nhà cung cấp không tồn tại' });
       }
 
-      // Kiểm tra quyền của người dùng cần được cập nhật
-      const updatedUserRole = updatedUser[0].role;
-      if (id !== currentUserId && updatedUserRole === 'admin') {
+      const [result] = await connection.query(
+         'UPDATE Suppliers SET supplier_id = ?, name = ?, address = ?, representative = ? WHERE supplier_id = ?',
+         [supplier_id, name, address, representative, id]
+      );
+
+      if (result.affectedRows === 0) {
          await connection.rollback();
-         return res.status(403).json({
+         return res.status(404).json({
             success: false,
-            message:
-               'Bạn không được phép chỉnh sửa thông tin của các admin khác',
+            message: 'Không tìm thấy nhà cung cấp',
          });
       }
 
-      // Tạo câu lệnh cập nhật chỉ cho những trường đã có giá trị
-      const updates = [];
-      const values = [];
-
-      if (fullname) {
-         updates.push('fullname = ?');
-         values.push(fullname);
-      }
-      if (address) {
-         updates.push('address = ?');
-         values.push(address);
-      }
-      if (phoneNumber) {
-         updates.push('phoneNumber = ?');
-         values.push(phoneNumber);
-      }
-      // Thêm id vào cuối để cập nhật cho đúng người dùng
-      values.push(id);
-
-      await connection.query(
-         `UPDATE employees SET ${updates.join(', ')} WHERE employee_id = ?`,
-         values
-      );
       await connection.commit();
       return res.status(200).json({
          success: true,
-         message: `Cập nhật thông tin người dùng với ID ${id} thành công`,
+         message: `Cập nhật thông tin nhà cung cấp có mã ${id} thành công`,
       });
    } catch (error) {
       // Nếu có lỗi, quay lại trạng thái trước transaction
@@ -378,66 +351,79 @@ const updateUserFromAdmin = asyncHandler(async (req, res) => {
    }
 });
 
-const deleteUser = async (req, res) => {
-   const { id } = req.params; // ID cần xóa, lấy từ URL
-   const currentRoleUser = req.user.role; // Role của người yêu cầu, lấy từ JWT
-
-   // Chỉ cho phép admin thực hiện hành động xóa
-   if (currentRoleUser !== 'admin') {
-      return res.status(403).json({
-         success: false,
-         message: 'Chỉ có admin mới được phép xóa người dùng',
-      });
-   }
-
-   await connection.beginTransaction();
+const deleteSupplier = async (req, res) => {
    try {
-      const [user] = await connection.query(
-         'SELECT * FROM employees WHERE employee_id = ?',
-         [id]
-      );
-      if (user.length === 0) {
-         await connection.rollback();
-         return res
-            .status(404)
-            .json({ success: false, message: 'Người dùng không tồn tại' });
-      }
+      const currentUserRole = req.user.role;
 
-      const deletedRoleUser = user[0].role;
-
-      // Chỉ cho phép xóa nếu người dùng có role là 'staff'
-      if (deletedRoleUser !== 'staff') {
-         await connection.rollback();
+      // Kiểm tra quyền admin
+      if (currentUserRole !== 'admin' && currentUserRole !== 'staff') {
          return res.status(403).json({
             success: false,
-            message: 'Admin chỉ có thể xóa staff',
+            message: 'Bạn không có quyền xoá nhà cung cấp.',
          });
       }
+      const { id } = req.params;
+      await connection.beginTransaction();
 
-      // Tiến hành xóa người dùng
-      await connection.query('DELETE FROM employees WHERE employee_id = ?', [
-         id,
-      ]);
+      // Execute the delete query within the transaction
+      const [result] = await connection.query(
+         'DELETE FROM Suppliers WHERE supplier_id = ?',
+         [id]
+      );
+
+      if (result.affectedRows === 0) {
+         // If no rows are affected, the detail doesn't exist
+         await connection.rollback();
+         return res.status(404).json({ message: 'Nhà cung cấp không tồn tại' });
+      }
+
+      // Commit the transaction if the delete is successful
       await connection.commit();
-      console.log(`Xóa thành công người dùng với ID ${id}`);
-
-      return res.status(200).json({
-         success: true,
-         message: `Xóa thành công người dùng với ID ${id}`,
-      });
+      res.status(200).json({ message: 'Nhà cung cấp đã được xóa' });
    } catch (error) {
-      // Nếu có lỗi, rollback transaction
-      await connection.rollback();
-      console.error('Error deleting user:', error);
-
-      return res.status(500).json({
-         success: false,
-         message: 'Có lỗi xảy ra, không thể xóa người dùng.',
-         error: error.message, // Gửi thêm thông tin lỗi chi tiết cho mục đích debug
-      });
+      // Rollback the transaction in case of an error
+      if (connection) await connection.rollback();
+      res.status(500).json({ message: error.message });
    }
 
    // Kiểm tra xem người dùng cần xóa có tồn tại không
+};
+
+const getSupplierById = async (req, res) => {
+   const { id } = req.params;
+   const currentUserRole = req.user.role;
+
+   if (currentUserRole !== 'admin' && currentUserRole !== 'staff') {
+      return res.status(403).json({
+         success: false,
+         message: 'Bạn không có quyền xem thông tin này.',
+      });
+   }
+   try {
+      // Start a transaction
+      await connection.beginTransaction();
+
+      // Execute the SELECT query within the transaction
+      const [rows] = await connection.query(
+         'SELECT * FROM Suppliers WHERE supplier_id = ?',
+         [id]
+      );
+
+      if (rows.length === 0) {
+         await connection.rollback(); // Rollback in case of not found to keep transaction clean
+         return res.status(404).send('Supplier not found');
+      }
+
+      // Commit the transaction after a successful fetch
+      await connection.commit();
+
+      // Send the result
+      res.json(rows[0]);
+   } catch (error) {
+      // Rollback the transaction if there's an error
+      if (connection) await connection.rollback();
+      res.status(500).json(error);
+   }
 };
 const lockUser = async (req, res) => {
    const { id } = req.params; // ID người dùng cần khóa/mở khóa
@@ -663,49 +649,6 @@ const changePassword = async (req, res) => {
    }
 };
 
-// const forgotPassword = asyncHandler(async (req, res) => {
-//     const { email } = req.body;
-//     if (!email) throw new Error('Email not found');
-//     const user = await User.findOne({ email });
-//     if (!user) throw new Error('User not found');
-
-//     const resetToken = user.createPasswordChangeToken();
-//     await user.save();
-
-//     const html = `
-//         Vui lòng nhấp vào link dưới đây để thay đổi mật khẩu của bạn.
-//         Link này sẽ hết hạn sau 5 phút kể từ bây giờ. <a href=${process.env.URI_CLIENT}/resetPassword/${resetToken}>Nhấp vào đây</a>
-//     `;
-
-//     const data = {
-//         email,
-//         html,
-//     };
-//     const infoMailUser = await sendMail(data);
-//     return res.status(200).json({
-//         success: infoMailUser?.response?.includes('OK') ? true : false,
-//         message: infoMailUser?.response?.includes('OK') ? 'Check mail to do a next step' : 'Error, please try again',
-//     });
-// });
-
-// const resetPassword = asyncHandler(async (req, res) => {
-//     const { password, token } = req.body;
-//     if (!password || !token) throw new Error('Missing password or token');
-//     const passwordResetToken = crypto.createHash('sha256').update(token).digest('hex');
-//     // gt: higher than, lt: lower than
-//     const user = await User.findOne({ passwordResetToken, passwordResetExpires: { $gt: Date.now() } });
-//     if (!user) throw new Error('Invalid reset token. Please try again forgot password');
-//     user.password = password;
-//     user.passwordResetToken = undefined;
-//     user.passwordResetExpires = undefined;
-//     user.passwordChangedAt = Date.now();
-//     await user.save();
-//     return res.status(200).json({
-//         success: user ? true : false,
-//         message: user ? 'Reset password successfully. Please login your account' : 'Failed update password',
-//     });
-// });
-
 const updateInfoMySelf = async (req, res) => {
    const { fullname, address, phoneNumber } = req.body; // Các trường được phép cập nhật
    const id = req.user.id; // Lấy id từ thông tin người dùng đăng nhập (JWT hoặc session)
@@ -816,16 +759,9 @@ const getAllUsers = asyncHandler(async (req, res) => {
 });
 
 export default {
-   register,
-   login,
-   logout,
-   createUser,
-   updateUserFromAdmin,
-   deleteUser,
-   lockUser,
-   getDetailUser,
-   filterUser,
-   changePassword,
-   updateInfoMySelf,
-   getAllUsers,
+   getAllSuppliers,
+   createSupplier,
+   updateSupplier,
+   deleteSupplier,
+   getSupplierById,
 };

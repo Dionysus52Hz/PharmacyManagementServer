@@ -4,9 +4,18 @@ import receivedNoteDetailsController from '../controllers/ReceivedNoteDetailsCon
 const router = express.Router();
 
 router.get('/', receivedNoteDetailsController.getAllReceivedNoteDetails);
-router.get('/:received-note-id', receivedNoteDetailsController.getReceivedNoteDetailById);
+router.get(
+   '/:received_note_id',
+   receivedNoteDetailsController.getReceivedNoteDetailById
+);
 router.post('/', receivedNoteDetailsController.createReceivedNoteDetail);
-router.put('/:received-note-id/:medicine_id', receivedNoteDetailsController.updateReceivedNoteDetail);
-router.delete('/:received-note-id/:medicine_id', receivedNoteDetailsController.deleteReceivedNoteDetail);
+router.put(
+   '/:received_note_id/:medicine_id',
+   receivedNoteDetailsController.updateReceivedNoteDetail
+);
+router.delete(
+   '/:received_note_id/:medicine_id',
+   receivedNoteDetailsController.deleteReceivedNoteDetail
+);
 
 export default router;
