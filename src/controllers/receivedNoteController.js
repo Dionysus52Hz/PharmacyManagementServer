@@ -109,6 +109,19 @@ const createReceivedNote = async (req, res) => {
       if (connection) await connection.rollback();
       res.status(500).json(error);
    }
+
+   //  const { employee_id, supplier_id, received_date } = req.body;
+
+   //  try {
+   //      // Gọi PROCDURE để tạo phiếu nhập kho
+   //      const [result] = await connection.query(
+   //          'CALL createReceivedNote(?, ?, ?)',
+   //          [employee_id, supplier_id, received_date]
+   //      );
+   //      res.status(201).json({ message: 'Received note created successfully' });
+   //  } catch (error) {
+   //      res.status(500).send('Error creating received note');
+   //  }
 };
 
 // Cập nhật thông tin một phiếu nhập

@@ -106,6 +106,20 @@ const createDeliveryNote = async (req, res) => {
       if (connection) await connection.rollback();
       res.status(500).send('Error creating delivery note');
    }
+
+   //  const { employee_id, customer_id, delivery_date } = req.body;
+
+   //  try {
+   //      const [result] = await connection.query('CALL CreateDeliveryNote(?, ?, ?, @out_delivery_note_id)', [
+   //          employee_id,
+   //          customer_id,
+   //          delivery_date,
+   //      ]);
+
+   //      res.status(200).send('deliveryNote create successfully');
+   //  } catch (error) {
+   //      res.status(500).json({ message: 'Error creating delivery note' });
+   //  }
 };
 
 const deleteDeliveryNote = async (req, res) => {

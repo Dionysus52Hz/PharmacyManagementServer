@@ -75,6 +75,26 @@ const createMedicine = async (req, res) => {
       await connection.rollback();
       res.status(500).json(error);
    }
+
+   //  const { medicine_id, name, manufacturer_id, supplier_id, effects, category_id, price, quantity } = req.body;
+   //  try {
+
+   //      // Gọi PROCEDURE để tạo thuốc mới
+   //      await connection.query(
+   //          'CALL createMedicine(?, ?, ?, ?, ?, ?, ?, ?);',
+   //          [medicine_id, name, manufacturer_id, supplier_id, effects, category_id, price, quantity]
+   //      );
+
+   //      if (medicine_id) {
+   //          // res.status(201).json({ medicine_id });
+   //          res.status(200).send('Medicine create successfully');
+
+   //      } else {
+   //          res.status(500).json({ message: 'Error creating medicine' });
+   //      }
+   //  } catch (error) {
+   //      res.status(500).json({ message: error.message });
+   //  }
 };
 
 // Cập nhật thông tin một loại thuốc
@@ -105,6 +125,15 @@ const updateMedicine = async (req, res) => {
             medicine_id,
          ]
       );
+      //  const { medicine_id } = req.params;
+      //  const { name, manufacturer_id, supplier_id, effects, category_id, price, quantity } = req.body;
+      //  try {
+      //      await connection.beginTransaction();
+
+      //      const [result] = await connection.query(
+      //          'UPDATE Medicine SET name = ?, manufacturer_id = ?, supplier_id = ?, effects = ?, category_id = ?, price = ?, quantity = ? WHERE medicine_id = ?',
+      //          [name, manufacturer_id, supplier_id, effects, category_id, price, quantity, medicine_id]
+      //      );
 
       if (result.affectedRows === 0) {
          await connection.rollback();
