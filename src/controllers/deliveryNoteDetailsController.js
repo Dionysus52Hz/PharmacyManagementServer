@@ -23,7 +23,6 @@ const getAllDeliveryNoteDetails = async (req, res) => {
 const getDeliveryNoteDetailById = async (req, res) => {
     try {
         const { delivery_note_id } = req.params;
-
         // Start the transaction
         await connection.beginTransaction();
 
@@ -33,7 +32,6 @@ const getDeliveryNoteDetailById = async (req, res) => {
             WHERE delivery_note_id = ?
         `;
         const [details] = await connection.query(query, [delivery_note_id]);
-
         if (details.length === 0) {
             return res.status(404).json({ message: 'No details found for this delivery note ID' });
         }
