@@ -501,7 +501,7 @@ const changePassword = async (req, res) => {
     try {
         // Kiểm tra xem người dùng đã cung cấp đầy đủ thông tin chưa
         if (!id || !currentPassword || !newPassword) {
-            return res.status(400).json({ message: 'Bạn cần cung cấp đủ thông tin để đổi mật khẩu.' });
+            return res.status(400).json({ success: false, message: 'Bạn cần cung cấp đủ thông tin để đổi mật khẩu.' });
         }
 
         // Kiểm tra mật khẩu mới
@@ -509,21 +509,24 @@ const changePassword = async (req, res) => {
         if (!passwordRegex.test(newPassword)) {
             return res
                 .status(400)
-                .json({ message: 'Mật khẩu mới phải gồm kí tự in hoa, kí tự thường, số và kí tự đặc biệt' });
+                .json({
+                    success: false,
+                    message: 'Mật khẩu mới phải gồm kí tự in hoa, kí tự thường, số và kí tự đặc biệt',
+                });
         }
 
         // Lấy thông tin người dùng từ cơ sở dữ liệu
         const [user] = await connection.query('SELECT * FROM employees WHERE employee_id = ?', [id]);
         if (user.length === 0) {
             await connection.rollback();
-            return res.status(404).json({ message: 'Người dùng không tồn tại.' });
+            return res.status(404).json({ success: false, message: 'Người dùng không tồn tại.' });
         }
 
         // Kiểm tra mật khẩu hiện tại
         const isMatch = await bcrypt.compare(currentPassword, user[0].password);
         if (!isMatch) {
             await connection.rollback();
-            return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng.' });
+            return res.status(400).json({ success: false, message: 'Mật khẩu hiện tại không đúng.' });
         }
 
         // Mã hóa mật khẩu mới
@@ -532,11 +535,11 @@ const changePassword = async (req, res) => {
 
         await connection.commit();
         console.log('Đổi mật khẩu thành công cho người dùng với ID ', id);
-        return res.status(200).json({ message: 'Đổi mật khẩu thành công.' });
+        return res.status(200).json({ success: true, message: 'Đổi mật khẩu thành công.' });
     } catch (error) {
         await connection.rollback(); // Hoàn nguyên transaction nếu có lỗi
         console.error('Error in changing password:', error);
-        return res.status(500).json({ message: 'Server error', error: error.message });
+        return res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
